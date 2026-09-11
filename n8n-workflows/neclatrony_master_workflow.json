@@ -1,0 +1,316 @@
+{
+  "name": "Neclatrony - Sistema Multiagente e Hiperautomatización Dental",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram-neclatrony",
+        "options": {}
+      },
+      "id": "node-webhook-telegram",
+      "name": "Webhook Telegram Ingest",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalizar evento de Telegram (mensaje o callback de botón)\nconst body = $input.first().json.body || $input.first().json;\nlet chat_id = null;\nlet text = '';\nlet is_callback = false;\nlet callback_data = null;\nlet user_name = '';\n\nif (body.message) {\n  chat_id = body.message.chat.id;\n  text = body.message.text || '';\n  user_name = body.message.from.first_name || 'Paciente';\n} else if (body.callback_query) {\n  is_callback = true;\n  chat_id = body.callback_query.message.chat.id;\n  callback_data = body.callback_query.data;\n  text = callback_data;\n  user_name = body.callback_query.from.first_name || 'Paciente';\n}\n\nreturn [{\n  json: {\n    chat_id,\n    text,\n    user_name,\n    is_callback,\n    callback_data,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-normalizer",
+      "name": "Normalizador de Datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.0
+        },
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "Eres el Agente 1 de Triaje y Clasificación de la Clínica Dental Neclatrony.\nClasifica el mensaje en una de las siguientes categorías:\n1. 'CITA_NUEVA': Solicitar cita, consulta inicial, valoración.\n2. 'CITA_REPROGRAMAR': Cambiar fecha u hora de cita existente.\n3. 'CITA_CANCELAR': Anular cita.\n4. 'CONSULTA_FAQ': Preguntas de precios, tratamientos, seguros, financiación, horarios.\n5. 'URGENCIA_MEDICA': Dolor insoportable, traumatismo, hemorragia, flemón agudo.\n6. 'QUEJA_RECLAMO': Inconformidad o queja.\n\nResponde ÚNICAMENTE un JSON con:\n{\n  \"intent\": \"CITA_NUEVA|CITA_REPROGRAMAR|CITA_CANCELAR|CONSULTA_FAQ|URGENCIA_MEDICA|QUEJA_RECLAMO\",\n  \"confidence\": 0.95,\n  \"urgency_level\": \"BAJA|MEDIA|ALTA|CRITICA\",\n  \"detected_specialty\": \"General|Implante|Ortodoncia|Cirugía|null\"\n}"
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.text }}"
+            }
+          ]
+        }
+      },
+      "id": "node-agente-1-clasificador",
+      "name": "Agente 1: Clasificador de Intención",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ JSON.parse($json.message.content).intent }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "URGENCIA_MEDICA",
+              "output": 0
+            },
+            {
+              "value2": "QUEJA_RECLAMO",
+              "output": 1
+            },
+            {
+              "value2": "CONSULTA_FAQ",
+              "output": 2
+            },
+            {
+              "value2": "CITA_NUEVA",
+              "output": 3
+            },
+            {
+              "value2": "CITA_REPROGRAMAR",
+              "output": 3
+            },
+            {
+              "value2": "CITA_CANCELAR",
+              "output": 3
+            }
+          ]
+        }
+      },
+      "id": "node-switch-router",
+      "name": "Router de Intenciones",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalizador de Datos').item.json.chat_id }}",
+        "text": "🚨 **ALERTA MÉDICA RECEPCIONADA**\nHemos registrado tus síntomas como prioritarios. \n\n⚠️ **Primeros Auxilios Inmediatos:**\n- Si hay sangrado activo, presiona firmemente con una gasa estéril.\n- Aplica frío local sobre la mejilla externa.\n- Por favor NO te automediques.\n\nUn profesional de recepción te llamará de inmediato. Teléfono directo de urgencias de la clínica: **+34 933 394 358**.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-telegram-urgencia",
+      "name": "Telegram: Respuesta Urgencia",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1160,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalizador de Datos').item.json.chat_id }}",
+        "text": "Estimado/a paciente, lamentamos el inconveniente. Hemos registrado formalmente tu mensaje y la dirección de la clínica se pondrá en contacto contigo en un plazo máximo de 24 horas laborables.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-telegram-queja",
+      "name": "Telegram: Registro Queja",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1160,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.1
+        },
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "Eres el Agente RAG de Preguntas Frecuentes de la Clínica Dental Neclatrony. Responde de forma cordial y breve sobre precios, tratamientos (implantes, ortodoncia invisible, limpiezas), financiación a 36 meses y aseguradoras (Sanitas, Adeslas, Mapfre, DKV, Asisa). Si solicitan diagnóstico médico, recomienda agendar una consulta de valoración presencial gratuita."
+            },
+            {
+              "role": "user",
+              "content": "={{ $('Normalizador de Datos').item.json.text }}"
+            }
+          ]
+        }
+      },
+      "id": "node-agente-3-rag",
+      "name": "Agente 3: RAG FAQ Clínico",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [
+        1160,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalizador de Datos').item.json.chat_id }}",
+        "text": "={{ $json.message.content }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-telegram-faq",
+      "name": "Telegram: Enviar FAQ",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1400,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.2
+        },
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "Eres el Agente 2 Gestor de Citas de la Clínica Dental Neclatrony.\nInteractúa con el paciente para recopilar:\n- DNI (obligatorio)\n- Nombre completo y Teléfono (si es nuevo)\n- Especialidad: General, Implante, Ortodoncia, Cirugía\n- Fecha y Hora exacta (disponibles entre 09:00 y 18:30)\n\nReglas:\n- Si el paciente pide las 15:00 o una hora fuera de rango, indícale las opciones más cercanas (11:30 o 16:00).\n- Máximo 1 cita activa por especialidad.\n- Si es reprogramación o cancelación, pide el DNI para buscar sus turnos.\n- Cuando todo esté completo y confirmado, añade al final: [LISTO_PARA_UIPATH] con el JSON consolidado."
+            },
+            {
+              "role": "user",
+              "content": "={{ $('Normalizador de Datos').item.json.text }}"
+            }
+          ]
+        }
+      },
+      "id": "node-agente-2-citas",
+      "name": "Agente 2: Gestor de Diálogo Citas",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [
+        1160,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalizador de Datos').item.json.chat_id }}",
+        "text": "={{ $json.message.content }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-telegram-citas",
+      "name": "Telegram: Respuesta Citas",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1400,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Telegram Ingest": {
+      "main": [
+        [
+          {
+            "node": "Normalizador de Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizador de Datos": {
+      "main": [
+        [
+          {
+            "node": "Agente 1: Clasificador de Intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente 1: Clasificador de Intención": {
+      "main": [
+        [
+          {
+            "node": "Router de Intenciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router de Intenciones": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Respuesta Urgencia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: Registro Queja",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agente 3: RAG FAQ Clínico",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agente 2: Gestor de Diálogo Citas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente 3: RAG FAQ Clínico": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Enviar FAQ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente 2: Gestor de Diálogo Citas": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Respuesta Citas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
