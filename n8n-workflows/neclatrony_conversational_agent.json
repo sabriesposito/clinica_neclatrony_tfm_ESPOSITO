@@ -1,0 +1,285 @@
+{
+  "name": "Neclatrony - Agente Conversacional de Recepción con Memoria",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram-neclatrony",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook Telegram Ingest",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer chat_id, texto del paciente y nombre\nconst body = $input.first().json.body || $input.first().json;\nlet chat_id = null;\nlet text = '';\nlet user_name = '';\n\nif (body.message) {\n  chat_id = String(body.message.chat.id);\n  text = body.message.text || '';\n  user_name = body.message.from.first_name || 'Paciente';\n} else if (body.callback_query) {\n  chat_id = String(body.callback_query.message.chat.id);\n  text = body.callback_query.data || '';\n  user_name = body.callback_query.from.first_name || 'Paciente';\n}\n\nreturn [{\n  json: {\n    chat_id,\n    text,\n    user_name,\n    sessionId: chat_id\n  }\n}];"
+      },
+      "id": "node-normalizer",
+      "name": "Normalizador de Mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "Eres Sofía, la recepcionista principal y asistente virtual de la prestigiosa Clínica Dental Neclatrony (6 consultorios equipados, cuadro médico: Dra. Martínez y Dra. López en Odontología General y Estética, Dr. Rodríguez en Ortodoncia convencional e invisible, Dr. Sánchez y Dr. Fernández en Cirugía Oral e Implantes, Dra. Torres en Odontopediatría, Dr. Morales en Prótesis e Implantes).\n\nTU MISIÓN:\nBrindar una atención humana, cálida, empática, ágil y profesional al paciente por mensajería, recreando con absoluta fidelidad una conversación real con una recepcionista de la clínica.\n\nPAUTAS DE CONVERSACIÓN (IDA Y VUELTA CON MEMORIA):\n1. Saludo y cercanía: Saluda cordialmente y trata al paciente por su nombre si ya lo conoces de mensajes anteriores.\n2. Identificación:\n   - Si no sabes quién es el paciente, pídele de forma natural su DNI/NIF para buscarlo en el sistema con la herramienta 'buscar_paciente'.\n   - Si es nuevo paciente, dale la bienvenida y solicita su nombre completo y teléfono móvil para abrir su expediente.\n3. Negociación dinámica de turnos:\n   - Cuando pida cita para una especialidad o doctor, usa SIEMPRE la herramienta 'consultar_disponibilidad_agenda' para consultar los huecos reales.\n   - Ofrece siempre 2 opciones concretas para facilitar la elección (ej: 'Tengo disponible este jueves a las 11:00 o a las 16:30. ¿Cuál te viene mejor?').\n   - Si el paciente pide una hora específica (ej. '¿Se puede a las 15:00?'), verifica con la herramienta si está libre. Si está ocupada, explícaselo amablemente y dale la alternativa más cercana ('A las 15:00 el consultorio está ocupado, pero a las 15:45 se libera un turno. ¿Te sirve?').\n   - Un paciente no puede tener más de una cita pendiente en la misma especialidad. Si ya tiene una, ofrécele reprogramarla.\n4. Dudas clínicas y precios:\n   - Usa la herramienta 'consultar_catalogo_rag' para responder sobre precios, tratamientos, financiación a 36 meses sin intereses y seguros (Sanitas, Adeslas, Mapfre, DKV, Asisa).\n   - NUNCA diagnostiques ni recetes medicamentos. Recomienda una valoración presencial gratuita.\n5. Cierre y confirmación para UiPath:\n   - En cuanto el paciente confirme la fecha y hora final, ejecuta la herramienta 'agendar_cita_uipath' para que el robot registre la cita en el ERP de la clínica.\n   - Confirma con un mensaje alegre y tranquilizador con el resumen del turno (doctor, consultorio, fecha y hora).\n6. Urgencias: Si reporta dolor agudo, hemorragia o golpe, usa 'alerta_urgencia_medica' y bríndale primeros auxilios."
+        }
+      },
+      "id": "node-agent",
+      "name": "AI Agent: Recepcionista Sofía",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "node-openai-model",
+      "name": "OpenAI Chat Model (GPT-4o)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "sessionKey": "={{ $('Normalizador de Mensaje').item.json.chat_id }}",
+        "contextWindowLength": 15
+      },
+      "id": "node-memory",
+      "name": "Memoria Conversacional (Ida y Vuelta)",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "name": "consultar_disponibilidad_agenda",
+        "description": "Verifica huecos libres o si una fecha y hora exacta (ej: '15:00') está disponible para una especialidad o doctor. Parámetros: fecha (YYYY-MM-DD), hora (opcional, ej: '15:00'), especialidad ('General', 'Ortodoncia', 'Implante', 'Cirugía').",
+        "jsCode": "// Simulación de consulta a la agenda de los 6 consultorios\nconst input = typeof query === 'string' ? JSON.parse(query) : query;\nconst fecha = input.fecha || '2026-09-15';\nconst hora = input.hora || null;\nconst esp = input.especialidad || 'General';\n\n// Horarios de la clínica\nconst slots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '16:00', '16:30', '17:00', '17:30', '18:00'];\n\n// Si el usuario pide las 15:00 (hora no hábil o quirófano ocupado)\nif (hora === '15:00') {\n  return JSON.stringify({\n    disponible: false,\n    mensaje: 'A las 15:00 el gabinete está ocupado por cirugía/desinfección. Horarios contiguos libres: 15:45, 16:30.'\n  });\n}\n\nif (hora) {\n  return JSON.stringify({\n    disponible: true,\n    fecha: fecha,\n    hora: hora,\n    especialidad: esp,\n    mensaje: 'Horario libre confirmado.'\n  });\n}\n\nreturn JSON.stringify({\n  disponible: true,\n  fecha: fecha,\n  especialidad: esp,\n  huecos_recomendados: ['10:30', '16:00', '17:30']\n});"
+      },
+      "id": "tool-disponibilidad",
+      "name": "Tool: Disponibilidad Agenda",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "name": "buscar_paciente",
+        "description": "Busca un paciente por su DNI en el sistema de la clínica. Parámetro: dni (string). Devuelve datos del paciente, citas previas o indica si es nuevo.",
+        "jsCode": "const input = typeof query === 'string' ? JSON.parse(query) : query;\nconst dni = (input.dni || '').toUpperCase();\n\nconst db = {\n  '12345678A': { nombre: 'Ana García Ruiz', telefono: '612345678', activo: true, cita_pendiente: null },\n  '23456789B': { nombre: 'Carlos Martínez Pérez', telefono: '623456789', activo: true, cita_pendiente: { id: 'C002', fecha: '2026-09-18', hora: '10:30', especialidad: 'Ortodoncia' } },\n  '34567890C': { nombre: 'Laura Sánchez Torres', telefono: '634567890', activo: true, cita_pendiente: null }\n};\n\nif (db[dni]) {\n  return JSON.stringify({ encontrado: true, paciente: db[dni] });\n} else {\n  return JSON.stringify({ encontrado: false, mensaje: 'Paciente no encontrado. Solicitar datos para alta (Nombre y Teléfono).' });\n}"
+      },
+      "id": "tool-buscar-paciente",
+      "name": "Tool: Buscar Paciente DNI",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "name": "consultar_catalogo_rag",
+        "description": "Consulta el catálogo clínico de tratamientos, precios, financiación a 36 meses y aseguradoras (Sanitas, Adeslas, Mapfre, DKV, Asisa). Parámetro: pregunta (string).",
+        "jsCode": "const input = typeof query === 'string' ? JSON.parse(query) : query;\nconst q = (input.pregunta || '').toLowerCase();\n\nif (q.includes('precio') || q.includes('cuesta') || q.includes('cuanto')) {\n  return JSON.stringify({\n    limpieza: '45 euros (gratis para asegurados concertados una vez al año)',\n    empaste: '50 a 70 euros según caras anatómicas',\n    implante_unitario: 'Desde 590 euros implante de titanio; corona de zirconio desde 480 euros',\n    ortodoncia_invisible: 'Alineadores transparentes desde 2.400 hasta 3.900 euros financiable',\n    brackets_zafiro: 'Desde 1.800 euros con cuotas desde 65 euros/mes',\n    financiacion: 'Hasta 36 meses sin intereses (TIN 0%, TAE 0%) para tratamientos mayores a 1.000 euros'\n  });\n}\n\nif (q.includes('seguro') || q.includes('sanitas') || q.includes('adeslas') || q.includes('mapfre')) {\n  return JSON.stringify({\n    conciertos: 'Centro concertado preferente con Sanitas Dental, Adeslas Dental, Mapfre Caja Salud, DKV y Asisa.',\n    coberturas: 'Revisión anual, ortopantomografía y una limpieza bucal al año incluidas sin coste. Hasta 40% de descuento en el resto de tratamientos.'\n  });\n}\n\nreturn JSON.stringify({\n  informacion: 'Atendemos todas las especialidades dentales en 6 consultorios de lunes a viernes de 08:30 a 20:30.'\n});"
+      },
+      "id": "tool-rag",
+      "name": "Tool: Catálogo Clínico RAG",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "name": "agendar_cita_uipath",
+        "description": "Registra y confirma una cita en la agenda de la clínica cuando el paciente ya acordó todos los datos. Parámetros: dni, nombre, especialidad, doctor, fecha (YYYY-MM-DD), hora (HH:MM).",
+        "jsCode": "const input = typeof query === 'string' ? JSON.parse(query) : query;\n\nreturn JSON.stringify({\n  estado: 'EXITO',\n  id_cita: 'NEC-' + Math.floor(1000 + Math.random() * 9000),\n  confirmacion: 'Cita encolada para UiPath en Mock ERP',\n  detalles: {\n    paciente: input.nombre || 'Paciente',\n    dni: input.dni,\n    especialidad: input.especialidad,\n    doctor: input.doctor || 'Dr. Asignado',\n    fecha: input.fecha,\n    hora: input.hora\n  }\n});"
+      },
+      "id": "tool-agendar-uipath",
+      "name": "Tool: Agendar Cita UiPath",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1280,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "name": "alerta_urgencia_medica",
+        "description": "Dispara una alarma inmediata a recepción para pacientes con dolor insoportable, hemorragia o traumatismo grave. Parámetros: sintomas (string), telefono (string).",
+        "jsCode": "const input = typeof query === 'string' ? JSON.parse(query) : query;\nreturn JSON.stringify({\n  alerta_disparada: true,\n  prioridad: 'CRITICA',\n  recepcion_notificada: true,\n  instrucciones_primeros_auxilios: 'Presión continua con gasa, frío local externo, no automedicarse.'\n});"
+      },
+      "id": "tool-urgencia",
+      "name": "Tool: Alerta Urgencia",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1440,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $('Normalizador de Mensaje').item.json.chat_id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-telegram-out",
+      "name": "Telegram: Enviar Respuesta",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Telegram Ingest": {
+      "main": [
+        [
+          {
+            "node": "Normalizador de Mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizador de Mensaje": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Recepcionista Sofía",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Recepcionista Sofía": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Enviar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model (GPT-4o)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Recepcionista Sofía",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria Conversacional (Ida y Vuelta)": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent: Recepcionista Sofía",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Disponibilidad Agenda": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Recepcionista Sofía",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Buscar Paciente DNI": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Recepcionista Sofía",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Catálogo Clínico RAG": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Recepcionista Sofía",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Agendar Cita UiPath": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Recepcionista Sofía",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Alerta Urgencia": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Recepcionista Sofía",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
