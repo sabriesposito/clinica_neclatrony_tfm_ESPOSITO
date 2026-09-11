@@ -7,7 +7,7 @@
         "path": "telegram-neclatrony",
         "options": {}
       },
-      "id": "node-webhook-telegram",
+      "id": "1",
       "name": "Webhook Telegram Ingest",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -18,9 +18,9 @@
     },
     {
       "parameters": {
-        "jsCode": "// Normalizar evento de Telegram (mensaje o callback de botón)\nconst body = $input.first().json.body || $input.first().json;\nlet chat_id = null;\nlet text = '';\nlet is_callback = false;\nlet callback_data = null;\nlet user_name = '';\n\nif (body.message) {\n  chat_id = body.message.chat.id;\n  text = body.message.text || '';\n  user_name = body.message.from.first_name || 'Paciente';\n} else if (body.callback_query) {\n  is_callback = true;\n  chat_id = body.callback_query.message.chat.id;\n  callback_data = body.callback_query.data;\n  text = callback_data;\n  user_name = body.callback_query.from.first_name || 'Paciente';\n}\n\nreturn [{\n  json: {\n    chat_id,\n    text,\n    user_name,\n    is_callback,\n    callback_data,\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// Normalizar mensaje de Telegram\nconst body = $input.first().json.body || $input.first().json;\nlet chat_id = null;\nlet text = '';\nlet user_name = '';\n\nif (body.message) {\n  chat_id = body.message.chat.id;\n  text = body.message.text || '';\n  user_name = body.message.from.first_name || 'Paciente';\n} else if (body.callback_query) {\n  chat_id = body.callback_query.message.chat.id;\n  text = body.callback_query.data || '';\n  user_name = body.callback_query.from.first_name || 'Paciente';\n}\n\nreturn [{\n  json: {\n    chat_id,\n    text,\n    user_name,\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
-      "id": "node-normalizer",
+      "id": "2",
       "name": "Normalizador de Datos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -31,27 +31,28 @@
     },
     {
       "parameters": {
-        "model": "gpt-4o",
-        "options": {
-          "temperature": 0.0
-        },
-        "prompt": {
-          "messages": [
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "role": "system",
-              "content": "Eres el Agente 1 de Triaje y Clasificación de la Clínica Dental Neclatrony.\nClasifica el mensaje en una de las siguientes categorías:\n1. 'CITA_NUEVA': Solicitar cita, consulta inicial, valoración.\n2. 'CITA_REPROGRAMAR': Cambiar fecha u hora de cita existente.\n3. 'CITA_CANCELAR': Anular cita.\n4. 'CONSULTA_FAQ': Preguntas de precios, tratamientos, seguros, financiación, horarios.\n5. 'URGENCIA_MEDICA': Dolor insoportable, traumatismo, hemorragia, flemón agudo.\n6. 'QUEJA_RECLAMO': Inconformidad o queja.\n\nResponde ÚNICAMENTE un JSON con:\n{\n  \"intent\": \"CITA_NUEVA|CITA_REPROGRAMAR|CITA_CANCELAR|CONSULTA_FAQ|URGENCIA_MEDICA|QUEJA_RECLAMO\",\n  \"confidence\": 0.95,\n  \"urgency_level\": \"BAJA|MEDIA|ALTA|CRITICA\",\n  \"detected_specialty\": \"General|Implante|Ortodoncia|Cirugía|null\"\n}"
-            },
-            {
-              "role": "user",
-              "content": "={{ $json.text }}"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o\",\n  \"temperature\": 0.0,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Eres el Agente 1 de Triaje de Clínica Dental Neclatrony. Clasifica el mensaje en: CITA_NUEVA, CITA_REPROGRAMAR, CITA_CANCELAR, CONSULTA_FAQ, URGENCIA_MEDICA, QUEJA_RECLAMO. Devuelve JSON con: intent, confidence, urgency_level, detected_specialty.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.text) }}\n    }\n  ]\n}",
+        "options": {}
       },
-      "id": "node-agente-1-clasificador",
-      "name": "Agente 1: Clasificador de Intención",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.4,
+      "id": "3",
+      "name": "Agente 1: Clasificador GPT-4o",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         660,
         300
@@ -59,167 +60,246 @@
     },
     {
       "parameters": {
-        "dataType": "string",
-        "value1": "={{ JSON.parse($json.message.content).intent }}",
-        "rules": {
-          "rules": [
-            {
-              "value2": "URGENCIA_MEDICA",
-              "output": 0
-            },
-            {
-              "value2": "QUEJA_RECLAMO",
-              "output": 1
-            },
-            {
-              "value2": "CONSULTA_FAQ",
-              "output": 2
-            },
-            {
-              "value2": "CITA_NUEVA",
-              "output": 3
-            },
-            {
-              "value2": "CITA_REPROGRAMAR",
-              "output": 3
-            },
-            {
-              "value2": "CITA_CANCELAR",
-              "output": 3
-            }
-          ]
-        }
+        "jsCode": "// Parsear el JSON retornado por OpenAI\nconst rawContent = $input.first().json.choices[0].message.content;\nconst parsed = JSON.parse(rawContent);\nconst prev = $('Normalizador de Datos').first().json;\n\nreturn [{\n  json: {\n    chat_id: prev.chat_id,\n    text: prev.text,\n    user_name: prev.user_name,\n    intent: parsed.intent || 'CONSULTA_FAQ',\n    confidence: parsed.confidence || 0.9,\n    urgency_level: parsed.urgency_level || 'BAJA',\n    detected_specialty: parsed.detected_specialty || null\n  }\n}];"
       },
-      "id": "node-switch-router",
-      "name": "Router de Intenciones",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
+      "id": "4",
+      "name": "Parsear Intención",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        900,
+        880,
         300
       ]
     },
     {
       "parameters": {
-        "chatId": "={{ $('Normalizador de Datos').item.json.chat_id }}",
-        "text": "🚨 **ALERTA MÉDICA RECEPCIONADA**\nHemos registrado tus síntomas como prioritarios. \n\n⚠️ **Primeros Auxilios Inmediatos:**\n- Si hay sangrado activo, presiona firmemente con una gasa estéril.\n- Aplica frío local sobre la mejilla externa.\n- Por favor NO te automediques.\n\nUn profesional de recepción te llamará de inmediato. Teléfono directo de urgencias de la clínica: **+34 933 394 358**.",
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "URGENCIA_MEDICA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "QUEJA_RECLAMO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "CONSULTA_FAQ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "CITA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5",
+      "name": "Router de Intenciones",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "🚨 *ALERTA MÉDICA PRIORITARIA*\nHemos registrado tus síntomas como urgentes.\n\n⚠️ *Primeros Auxilios:* Si hay hemorragia, presiona con gasa estéril continua. Aplica frío externo en la mejilla. NO te automediques.\n\nUn profesional de recepción te llamará de inmediato. Teléfono directo: *+34 933 394 358*.",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
-      "id": "node-telegram-urgencia",
-      "name": "Telegram: Respuesta Urgencia",
+      "id": "6",
+      "name": "Telegram: Urgencia",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1160,
+        1380,
         100
       ]
     },
     {
       "parameters": {
-        "chatId": "={{ $('Normalizador de Datos').item.json.chat_id }}",
-        "text": "Estimado/a paciente, lamentamos el inconveniente. Hemos registrado formalmente tu mensaje y la dirección de la clínica se pondrá en contacto contigo en un plazo máximo de 24 horas laborables.",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "Estimado/a {{ $json.user_name }}, hemos registrado tu mensaje de reclamación formalmente. La dirección médica revisará tu caso y se pondrá en contacto contigo en un plazo máximo de 24 horas laborables.",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
-      "id": "node-telegram-queja",
-      "name": "Telegram: Registro Queja",
+      "id": "7",
+      "name": "Telegram: Queja",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1160,
+        1380,
         240
       ]
     },
     {
       "parameters": {
-        "model": "gpt-4o",
-        "options": {
-          "temperature": 0.1
-        },
-        "prompt": {
-          "messages": [
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "role": "system",
-              "content": "Eres el Agente RAG de Preguntas Frecuentes de la Clínica Dental Neclatrony. Responde de forma cordial y breve sobre precios, tratamientos (implantes, ortodoncia invisible, limpiezas), financiación a 36 meses y aseguradoras (Sanitas, Adeslas, Mapfre, DKV, Asisa). Si solicitan diagnóstico médico, recomienda agendar una consulta de valoración presencial gratuita."
-            },
-            {
-              "role": "user",
-              "content": "={{ $('Normalizador de Datos').item.json.text }}"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o\",\n  \"temperature\": 0.1,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Eres el Agente RAG de Preguntas Frecuentes de la Clínica Dental Neclatrony. Responde cordialmente sobre precios (limpieza 45€, empaste 50-70€, implante desde 590€, ortodoncia invisible desde 2400€), financiación a 36 meses sin intereses y seguros (Sanitas, Adeslas, Mapfre, DKV, Asisa). Si piden diagnósticos, sugiere agendar cita presencial.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.text) }}\n    }\n  ]\n}",
+        "options": {}
       },
-      "id": "node-agente-3-rag",
-      "name": "Agente 3: RAG FAQ Clínico",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.4,
+      "id": "8",
+      "name": "Agente 3: RAG FAQ",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        1160,
+        1380,
         380
       ]
     },
     {
       "parameters": {
-        "chatId": "={{ $('Normalizador de Datos').item.json.chat_id }}",
-        "text": "={{ $json.message.content }}",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Parsear Intención').first().json.chat_id }}",
+        "text": "={{ $json.choices[0].message.content }}",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
-      "id": "node-telegram-faq",
+      "id": "9",
       "name": "Telegram: Enviar FAQ",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1400,
+        1640,
         380
       ]
     },
     {
       "parameters": {
-        "model": "gpt-4o",
-        "options": {
-          "temperature": 0.2
-        },
-        "prompt": {
-          "messages": [
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "role": "system",
-              "content": "Eres el Agente 2 Gestor de Citas de la Clínica Dental Neclatrony.\nInteractúa con el paciente para recopilar:\n- DNI (obligatorio)\n- Nombre completo y Teléfono (si es nuevo)\n- Especialidad: General, Implante, Ortodoncia, Cirugía\n- Fecha y Hora exacta (disponibles entre 09:00 y 18:30)\n\nReglas:\n- Si el paciente pide las 15:00 o una hora fuera de rango, indícale las opciones más cercanas (11:30 o 16:00).\n- Máximo 1 cita activa por especialidad.\n- Si es reprogramación o cancelación, pide el DNI para buscar sus turnos.\n- Cuando todo esté completo y confirmado, añade al final: [LISTO_PARA_UIPATH] con el JSON consolidado."
-            },
-            {
-              "role": "user",
-              "content": "={{ $('Normalizador de Datos').item.json.text }}"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o\",\n  \"temperature\": 0.2,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Eres el Agente Gestor de Citas de Clínica Dental Neclatrony. Pide amablemente los datos necesarios: DNI, si es nuevo (nombre y teléfono), especialidad (General, Implante, Ortodoncia, Cirugía), fecha y hora deseada (de 09:00 a 18:30). Si pide hora ocupada o fuera de rango (como las 15:00), ofrece las alternativas 11:30 o 16:00.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.text) }}\n    }\n  ]\n}",
+        "options": {}
       },
-      "id": "node-agente-2-citas",
-      "name": "Agente 2: Gestor de Diálogo Citas",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.4,
+      "id": "10",
+      "name": "Agente 2: Gestor Citas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        1160,
+        1380,
         520
       ]
     },
     {
       "parameters": {
-        "chatId": "={{ $('Normalizador de Datos').item.json.chat_id }}",
-        "text": "={{ $json.message.content }}",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Parsear Intención').first().json.chat_id }}",
+        "text": "={{ $json.choices[0].message.content }}",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
-      "id": "node-telegram-citas",
-      "name": "Telegram: Respuesta Citas",
+      "id": "11",
+      "name": "Telegram: Enviar Citas",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1400,
+        1640,
         520
       ]
     }
@@ -240,14 +320,25 @@
       "main": [
         [
           {
-            "node": "Agente 1: Clasificador de Intención",
+            "node": "Agente 1: Clasificador GPT-4o",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Agente 1: Clasificador de Intención": {
+    "Agente 1: Clasificador GPT-4o": {
+      "main": [
+        [
+          {
+            "node": "Parsear Intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Intención": {
       "main": [
         [
           {
@@ -262,35 +353,35 @@
       "main": [
         [
           {
-            "node": "Telegram: Respuesta Urgencia",
+            "node": "Telegram: Urgencia",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Telegram: Registro Queja",
+            "node": "Telegram: Queja",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Agente 3: RAG FAQ Clínico",
+            "node": "Agente 3: RAG FAQ",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Agente 2: Gestor de Diálogo Citas",
+            "node": "Agente 2: Gestor Citas",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Agente 3: RAG FAQ Clínico": {
+    "Agente 3: RAG FAQ": {
       "main": [
         [
           {
@@ -301,11 +392,11 @@
         ]
       ]
     },
-    "Agente 2: Gestor de Diálogo Citas": {
+    "Agente 2: Gestor Citas": {
       "main": [
         [
           {
-            "node": "Telegram: Respuesta Citas",
+            "node": "Telegram: Enviar Citas",
             "type": "main",
             "index": 0
           }
