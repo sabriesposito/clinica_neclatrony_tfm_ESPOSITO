@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NECLATRONY – Sistema de Gestión</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <style>
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      font-weight: var(--fw-semi);
+      box-shadow: var(--shadow-lg);
+      z-index: 500;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+    }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+    .toast-success { background: var(--color-success); color: #fff; }
+    .toast-error   { background: var(--color-danger);  color: #fff; }
+    .sidebar-footer {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: var(--sp-4);
+      border-top: 1px solid var(--color-border);
+      font-size: 11.5px;
+      color: var(--color-text-subtle);
+      text-align: center;
+    }
+    .sidebar { position: relative; }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar backdrop (mobile) ── -->
+<div id="sidebar-backdrop"></div>
+
+<div class="app-shell" id="app-shell">
+
+  <!-- ── Top Bar ── -->
+  <header class="topbar">
+    <button class="hamburger" id="btn-menu" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+      </div>
+      <span class="brand-name">NECLAT<span>RONY</span></span>
+    </div>
+    <div class="topbar-center">Sistema de Gestión Dental</div>
+    <div class="topbar-right">
+      <span class="topbar-date" id="topbar-date"></span>
+      <div class="topbar-avatar">DR</div>
+    </div>
+  </header>
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Principal</div>
+      <div class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </span>
+        Panel general
+      </div>
+      <div class="nav-item" data-page="agenda">
+        <span class="nav-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        Agenda
+        <span class="nav-badge" id="badge-citas-hoy">–</span>
+      </div>
+      <div class="nav-item" data-page="nueva-cita">
+        <span class="nav-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </span>
+        Nueva cita
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Pacientes</div>
+      <div class="nav-item" data-page="doctores">
+        <span class="nav-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+        Doctores
+      </div>
+      <div class="nav-item" data-page="pacientes">
+        <span class="nav-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        Pacientes
+      </div>
+    </div>
+    <div class="sidebar-footer">NECLATRONY © 2025</div>
+  </nav>
+
+  <!-- ── Main ── -->
+  <main class="main-content">
+
+    <!-- Dashboard -->
+    <section id="page-dashboard" class="page active">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Panel general</h1>
+          <p class="page-subtitle">Resumen del día y actividad reciente</p>
+        </div>
+        <button class="btn btn-primary" id="btn-nueva-cita" onclick="navigateTo('nueva-cita')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nueva cita
+        </button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="stat-value" id="stat-citas-hoy">–</div>
+          <div class="stat-label">Citas hoy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#EDE9FE;color:#7C3AED">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <div class="stat-value" id="stat-pacientes">–</div>
+          <div class="stat-label">Pacientes registrados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--color-success-tint);color:var(--color-success)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="stat-value" id="stat-confirmadas">–</div>
+          <div class="stat-label">Confirmadas hoy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--color-warning-tint);color:var(--color-warning)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="stat-value" id="stat-pendientes">–</div>
+          <div class="stat-label">Pendientes de confirmar</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-5)">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Agenda de hoy</span>
+            <button class="btn btn-sm btn-secondary" onclick="navigateTo('agenda')">Ver completa</button>
+          </div>
+          <div id="dashboard-agenda"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Próximas citas</span>
+          </div>
+          <div id="proximas-citas"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Agenda -->
+    <section id="page-agenda" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Agenda</h1>
+          <p class="page-subtitle" id="agenda-resumen">–</p>
+        </div>
+        <div style="display:flex;gap:var(--sp-3);align-items:center">
+          <input type="date" id="agenda-fecha" style="width:auto">
+          <button class="btn btn-primary" onclick="navigateTo('nueva-cita')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nueva cita
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="agenda-view"></div>
+      </div>
+    </section>
+
+    <!-- Nueva Cita -->
+    <section id="page-nueva-cita" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Nueva cita</h1>
+          <p class="page-subtitle">Registra una nueva cita en el sistema</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="alert-form" class="alert">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span class="alert-text"></span>
+        </div>
+
+        <!-- UiPath confirmation target -->
+        <div id="mensaje-confirmacion" data-cita-id="" style="display:none"></div>
+
+        <form id="form-nueva-cita" autocomplete="off">
+          <h3 style="font-size:13px;font-weight:var(--fw-bold);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--sp-4)">Datos del paciente</h3>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="input-dni-paciente">DNI / NIF *</label>
+              <input type="text" id="input-dni-paciente" name="dni" placeholder="12345678A">
+            </div>
+            <div class="form-group">
+              <label for="input-nombre-paciente">Nombre completo *</label>
+              <input type="text" id="input-nombre-paciente" name="nombre" placeholder="Nombre y apellidos">
+            </div>
+            <div class="form-group">
+              <label for="input-telefono-paciente">Teléfono</label>
+              <input type="tel" id="input-telefono-paciente" name="telefono" placeholder="6XX XXX XXX">
+            </div>
+            <div class="form-group">
+              <label for="input-email-paciente">Email</label>
+              <input type="email" id="input-email-paciente" name="email" placeholder="correo@ejemplo.com">
+            </div>
+          </div>
+
+          <div class="divider"></div>
+          <h3 style="font-size:13px;font-weight:var(--fw-bold);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--sp-4)">Detalles de la cita</h3>
+
+          <div class="form-grid cols-3">
+            <div class="form-group">
+              <label for="select-tratamiento">Tratamiento *</label>
+              <select id="select-tratamiento" name="tratamiento">
+                <option value="">Seleccionar tratamiento</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="input-fecha-cita">Fecha *</label>
+              <input type="date" id="input-fecha-cita" name="fecha">
+            </div>
+            <div class="form-group">
+              <label for="input-hora-cita">Hora *</label>
+              <select id="input-hora-cita" name="hora">
+                <option value="">Seleccionar hora</option>
+              </select>
+            </div>
+            <div class="form-group full-width">
+              <label for="select-medico">Médico asignado</label>
+              <select id="select-medico" name="medico">
+                <!-- populated dynamically from localStorage -->
+              </select>
+            </div>
+            <div class="form-group full-width">
+              <label for="textarea-notas">Notas adicionales</label>
+              <textarea id="textarea-notas" name="notas" placeholder="Observaciones, alergias, motivo de consulta..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="btn-limpiar-form">Limpiar</button>
+            <button type="submit" class="btn btn-primary" id="btn-guardar-cita">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Guardar cita
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Doctores -->
+    <section id="page-doctores" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Doctores</h1>
+          <p class="page-subtitle">Gestión del equipo médico</p>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:520px;margin-bottom:var(--sp-6)">
+        <div class="card-header">
+          <span class="card-title">Agregar doctor</span>
+        </div>
+        <div id="alert-doctores" class="alert"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="alert-text"></span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="input-medico-nombre">Nombre completo *</label>
+            <input type="text" id="input-medico-nombre" placeholder="Ej: Dra. González">
+          </div>
+          <div class="form-group">
+            <label for="input-medico-especialidad">Especialidad</label>
+            <input type="text" id="input-medico-especialidad" placeholder="Ej: Ortodoncia">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="btn-agregar-medico">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Agregar doctor
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Equipo médico</span>
+          <span id="doctores-count" class="text-muted text-sm"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nombre</th><th>Especialidad</th><th>Acciones</th></tr></thead>
+            <tbody id="tbody-doctores"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pacientes -->
+    <section id="page-pacientes" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Pacientes</h1>
+          <p class="page-subtitle">Directorio y fichas de pacientes</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="search-bar">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="input-buscar-paciente" placeholder="Buscar por nombre, DNI o teléfono…">
+          </div>
+        </div>
+        <div class="table-wrap" id="tabla-pacientes">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>DNI</th>
+                <th>Teléfono</th>
+                <th>Última cita</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-pacientes"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ── Modal: Ficha Paciente ── -->
+<div class="modal-overlay" id="modal-ficha-paciente">
+  <div class="modal" style="max-width:560px">
+    <h2 class="modal-title" id="modal-paciente-nombre">Ficha de paciente</h2>
+    <div class="divider" style="margin:var(--sp-4) 0"></div>
+    <div class="detail-grid" style="margin-bottom:var(--sp-5)">
+      <div class="detail-item">
+        <label>DNI</label>
+        <div class="detail-value" id="modal-paciente-dni">–</div>
+      </div>
+      <div class="detail-item">
+        <label>Teléfono</label>
+        <div class="detail-value" id="modal-paciente-tel">–</div>
+      </div>
+      <div class="detail-item">
+        <label>Email</label>
+        <div class="detail-value" id="modal-paciente-email">–</div>
+      </div>
+    </div>
+    <h3 style="font-size:12px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--sp-3)">Historial de citas</h3>
+    <div id="modal-historial"></div>
+    <div class="modal-actions" style="margin-top:var(--sp-5)">
+      <button class="btn btn-secondary" id="btn-cerrar-modal">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Confirmar Cancelación ── -->
+<div class="modal-overlay" id="modal-cancelar">
+  <div class="modal">
+    <h2 class="modal-title">¿Cancelar esta cita?</h2>
+    <p class="modal-body">Esta acción marcará la cita como cancelada. El paciente deberá solicitar una nueva cita si lo desea.</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="btn-cerrar-cancelar">Volver</button>
+      <button class="btn btn-danger" id="btn-confirmar-cancelacion">Sí, cancelar cita</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div id="toast" class="toast"></div>
+
+<script src="scripts/data.js"></script>
+<script src="scripts/app.js"></script>
+</body>
+</html>
