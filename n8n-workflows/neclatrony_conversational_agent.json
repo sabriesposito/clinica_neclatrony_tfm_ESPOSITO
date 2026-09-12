@@ -3,14 +3,16 @@
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "telegram-neclatrony",
-        "options": {}
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {}
       },
-      "id": "node-webhook",
-      "name": "Webhook Telegram Ingest",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
+      "id": "node-telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
       "position": [
         180,
         300
@@ -18,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extraer chat_id, texto del paciente y nombre\nconst body = $input.first().json.body || $input.first().json;\nlet chat_id = null;\nlet text = '';\nlet user_name = '';\n\nif (body.message) {\n  chat_id = String(body.message.chat.id);\n  text = body.message.text || '';\n  user_name = body.message.from.first_name || 'Paciente';\n} else if (body.callback_query) {\n  chat_id = String(body.callback_query.message.chat.id);\n  text = body.callback_query.data || '';\n  user_name = body.callback_query.from.first_name || 'Paciente';\n}\n\nreturn [{\n  json: {\n    chat_id,\n    text,\n    user_name,\n    sessionId: chat_id\n  }\n}];"
+        "jsCode": "// Extraer chat_id, texto del paciente y nombre\nconst item = $input.first().json;\nlet chat_id = null;\nlet text = '';\nlet user_name = '';\n\nif (item.message) {\n  chat_id = String(item.message.chat.id);\n  text = item.message.text || '';\n  user_name = item.message.from.first_name || 'Paciente';\n} else if (item.callback_query) {\n  chat_id = String(item.callback_query.message.chat.id);\n  text = item.callback_query.data || '';\n  user_name = item.callback_query.from.first_name || 'Paciente';\n}\n\nreturn [{\n  json: {\n    chat_id,\n    text,\n    user_name,\n    sessionId: chat_id\n  }\n}];"
       },
       "id": "node-normalizer",
       "name": "Normalizador de Mensaje",
@@ -80,7 +82,7 @@
       "parameters": {
         "name": "consultar_disponibilidad_agenda",
         "description": "Verifica huecos libres o si una fecha y hora exacta (ej: '15:00') está disponible para una especialidad o doctor. Parámetros: fecha (YYYY-MM-DD), hora (opcional, ej: '15:00'), especialidad ('General', 'Ortodoncia', 'Implante', 'Cirugía').",
-        "jsCode": "// Simulación de consulta a la agenda de los 6 consultorios\nconst input = typeof query === 'string' ? JSON.parse(query) : query;\nconst fecha = input.fecha || '2026-09-15';\nconst hora = input.hora || null;\nconst esp = input.especialidad || 'General';\n\n// Horarios de la clínica\nconst slots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '16:00', '16:30', '17:00', '17:30', '18:00'];\n\n// Si el usuario pide las 15:00 (hora no hábil o quirófano ocupado)\nif (hora === '15:00') {\n  return JSON.stringify({\n    disponible: false,\n    mensaje: 'A las 15:00 el gabinete está ocupado por cirugía/desinfección. Horarios contiguos libres: 15:45, 16:30.'\n  });\n}\n\nif (hora) {\n  return JSON.stringify({\n    disponible: true,\n    fecha: fecha,\n    hora: hora,\n    especialidad: esp,\n    mensaje: 'Horario libre confirmado.'\n  });\n}\n\nreturn JSON.stringify({\n  disponible: true,\n  fecha: fecha,\n  especialidad: esp,\n  huecos_recomendados: ['10:30', '16:00', '17:30']\n});"
+        "jsCode": "const input = typeof query === 'string' ? JSON.parse(query) : query;\nconst fecha = input.fecha || '2026-09-15';\nconst hora = input.hora || null;\nconst esp = input.especialidad || 'General';\n\nif (hora === '15:00') {\n  return JSON.stringify({\n    disponible: false,\n    mensaje: 'A las 15:00 el gabinete está ocupado por cirugía/desinfección. Horarios contiguos libres: 15:45, 16:30.'\n  });\n}\n\nif (hora) {\n  return JSON.stringify({\n    disponible: true,\n    fecha: fecha,\n    hora: hora,\n    especialidad: esp,\n    mensaje: 'Horario libre confirmado.'\n  });\n}\n\nreturn JSON.stringify({\n  disponible: true,\n  fecha: fecha,\n  especialidad: esp,\n  huecos_recomendados: ['10:30', '16:00', '17:30']\n});"
       },
       "id": "tool-disponibilidad",
       "name": "Tool: Disponibilidad Agenda",
@@ -110,7 +112,7 @@
       "parameters": {
         "name": "consultar_catalogo_rag",
         "description": "Consulta el catálogo clínico de tratamientos, precios, financiación a 36 meses y aseguradoras (Sanitas, Adeslas, Mapfre, DKV, Asisa). Parámetro: pregunta (string).",
-        "jsCode": "const input = typeof query === 'string' ? JSON.parse(query) : query;\nconst q = (input.pregunta || '').toLowerCase();\n\nif (q.includes('precio') || q.includes('cuesta') || q.includes('cuanto')) {\n  return JSON.stringify({\n    limpieza: '45 euros (gratis para asegurados concertados una vez al año)',\n    empaste: '50 a 70 euros según caras anatómicas',\n    implante_unitario: 'Desde 590 euros implante de titanio; corona de zirconio desde 480 euros',\n    ortodoncia_invisible: 'Alineadores transparentes desde 2.400 hasta 3.900 euros financiable',\n    brackets_zafiro: 'Desde 1.800 euros con cuotas desde 65 euros/mes',\n    financiacion: 'Hasta 36 meses sin intereses (TIN 0%, TAE 0%) para tratamientos mayores a 1.000 euros'\n  });\n}\n\nif (q.includes('seguro') || q.includes('sanitas') || q.includes('adeslas') || q.includes('mapfre')) {\n  return JSON.stringify({\n    conciertos: 'Centro concertado preferente con Sanitas Dental, Adeslas Dental, Mapfre Caja Salud, DKV y Asisa.',\n    coberturas: 'Revisión anual, ortopantomografía y una limpieza bucal al año incluidas sin coste. Hasta 40% de descuento en el resto de tratamientos.'\n  });\n}\n\nreturn JSON.stringify({\n  informacion: 'Atendemos todas las especialidades dentales en 6 consultorios de lunes a viernes de 08:30 a 20:30.'\n});"
+        "jsCode": "const input = typeof query === 'string' ? JSON.parse(query) : query;\nconst q = (input.pregunta || '').toLowerCase();\n\nif (q.includes('precio') || q.includes('cuesta') || q.includes('cuanto') || q.includes('valor')) {\n  return JSON.stringify({\n    limpieza: '45 euros (gratis para asegurados concertados una vez al año)',\n    empaste: '50 a 70 euros según caras anatómicas',\n    implante_unitario: 'Desde 590 euros implante de titanio; corona de zirconio desde 480 euros',\n    ortodoncia_invisible: 'Alineadores transparentes desde 2.400 hasta 3.900 euros financiable',\n    brackets_zafiro: 'Desde 1.800 euros con cuotas desde 65 euros/mes',\n    financiacion: 'Hasta 36 meses sin intereses (TIN 0%, TAE 0%) para tratamientos mayores a 1.000 euros'\n  });\n}\n\nif (q.includes('seguro') || q.includes('sanitas') || q.includes('adeslas') || q.includes('mapfre') || q.includes('dkv') || q.includes('asisa')) {\n  return JSON.stringify({\n    conciertos: 'Centro concertado preferente con Sanitas Dental, Adeslas Dental, Mapfre Caja Salud, DKV y Asisa.',\n    coberturas: 'Revisión anual, ortopantomografía y una limpieza bucal al año incluidas sin coste. Hasta 40% de descuento en el resto de tratamientos.'\n  });\n}\n\nreturn JSON.stringify({\n  informacion: 'Clínica Dental Neclatrony cuenta con 6 consultorios y especialistas en General, Ortodoncia, Implantes y Cirugía de lunes a viernes de 08:30 a 20:30.'\n});"
       },
       "id": "tool-rag",
       "name": "Tool: Catálogo Clínico RAG",
@@ -125,7 +127,7 @@
       "parameters": {
         "name": "agendar_cita_uipath",
         "description": "Registra y confirma una cita en la agenda de la clínica cuando el paciente ya acordó todos los datos. Parámetros: dni, nombre, especialidad, doctor, fecha (YYYY-MM-DD), hora (HH:MM).",
-        "jsCode": "const input = typeof query === 'string' ? JSON.parse(query) : query;\n\nreturn JSON.stringify({\n  estado: 'EXITO',\n  id_cita: 'NEC-' + Math.floor(1000 + Math.random() * 9000),\n  confirmacion: 'Cita encolada para UiPath en Mock ERP',\n  detalles: {\n    paciente: input.nombre || 'Paciente',\n    dni: input.dni,\n    especialidad: input.especialidad,\n    doctor: input.doctor || 'Dr. Asignado',\n    fecha: input.fecha,\n    hora: input.hora\n  }\n});"
+        "jsCode": "const input = typeof query === 'string' ? JSON.parse(query) : query;\n\nreturn JSON.stringify({\n  estado: 'EXITO',\n  id_cita: 'NEC-' + Math.floor(1000 + Math.random() * 9000),\n  confirmacion: 'Cita registrada con éxito en el ERP de la clínica',\n  detalles: {\n    paciente: input.nombre || 'Paciente',\n    dni: input.dni,\n    especialidad: input.especialidad,\n    doctor: input.doctor || 'Dr. Asignado',\n    fecha: input.fecha,\n    hora: input.hora\n  }\n});"
       },
       "id": "tool-agendar-uipath",
       "name": "Tool: Agendar Cita UiPath",
@@ -171,7 +173,7 @@
     }
   ],
   "connections": {
-    "Webhook Telegram Ingest": {
+    "Telegram Trigger": {
       "main": [
         [
           {
