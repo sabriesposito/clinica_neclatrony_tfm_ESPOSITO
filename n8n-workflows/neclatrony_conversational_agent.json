@@ -142,7 +142,7 @@
       "parameters": {
         "name": "alerta_urgencia_medica",
         "description": "Dispara una alarma inmediata a recepción para pacientes con dolor insoportable, hemorragia o traumatismo grave. Parámetros: sintomas (string), telefono (string).",
-        "jsCode": "return JSON.stringify({\n  alerta_disparada: true,\n  prioridad: 'CRITICA',\n  recepcion_notificada: true,\n  instrucciones_primeros_auxilios: 'Presión continua con gasa estéril si hay sangrado, aplicar frío local externo en mejilla, no enjuagarse ni escupir, no automedicarse.'\n});"
+        "jsCode": "let input = {};\ntry {\n  if (typeof query !== 'undefined' && query) {\n    input = typeof query === 'string' ? JSON.parse(query) : query;\n  }\n} catch (e) {\n  input = {};\n}\n\nreturn JSON.stringify({\n  alerta_disparada: true,\n  prioridad: 'CRITICA',\n  recepcion_notificada: true,\n  instrucciones_primeros_auxilios: 'Presión continua con gasa, frío local externo, no automedicarse.'\n});"
       },
       "id": "tool-urgencia",
       "name": "Tool: Alerta Urgencia",
