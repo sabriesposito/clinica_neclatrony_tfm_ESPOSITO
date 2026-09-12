@@ -299,6 +299,20 @@ function guardarCita() {
   citas.push(nuevaCita);
   saveCitas(citas);
 
+  // Sincronización en tiempo real con Supabase (SSOT)
+  syncCitaToSupabase({
+    erp_cita_id: nuevaCita.id,
+    dni: dni ? dni.toUpperCase().trim() : '',
+    nombre: nombre,
+    telefono: telefono,
+    email: email,
+    especialidad: tratamiento,
+    fecha: fecha,
+    hora: hora,
+    medico: medico,
+    canal_origen: 'PRESENCIAL'
+  });
+
   const msg = `Cita registrada correctamente para ${nombre} el ${formatFecha(fecha)} a las ${hora}.`;
   showAlert("alert-form", "success", msg);
   document.getElementById("mensaje-confirmacion").textContent = msg;
@@ -545,3 +559,95 @@ function showToast(msg, type = "success") {
   toast.className = `toast toast-${type} visible`;
   setTimeout(() => toast.classList.remove("visible"), 3500);
 }
+
+// ── Sincronización Bidireccional con Supabase (SSOT) ──────────────────────────
+async function syncCitaToSupabase(data) {
+  const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+  const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+  const headers = {
+    "apikey": SERVICE_KEY,
+    "Authorization": "Bearer " + SERVICE_KEY,
+    "Content-Type": "application/json",
+    "Prefer": "return=representation"
+  };
+
+  try {
+    let pacienteId = null;
+    const cleanDni = (data.dni || "").replace(/[^0-9A-Z]/gi, "");
+
+    // 1. Buscar paciente por DNI si existe
+    if (cleanDni) {
+      const pResp = await fetch(`${SUPABASE_URL}/rest/v1/clinica_pacientes?dni=eq.${cleanDni}&select=id`, { headers });
+      const pData = await pResp.json();
+      if (Array.isArray(pData) && pData.length > 0) {
+        pacienteId = pData[0].id;
+      }
+    }
+
+    // 2. Si no existe, crear paciente en Supabase
+    if (!pacienteId) {
+      const partes = (data.nombre || "Paciente").trim().split(" ");
+      const nombre = partes[0] || "Paciente";
+      const apellidos = partes.slice(1).join(" ") || "";
+
+      const nuevoP = {
+        dni: cleanDni || ("PRES-" + Math.floor(10000000 + Math.random() * 90000000)),
+        nombre: nombre,
+        apellidos: apellidos,
+        telefono: data.telefono || "Sin registrar",
+        email: data.email || null,
+        acepta_rgpd: true,
+        fecha_alta: new Date().toISOString()
+      };
+
+      const insResp = await fetch(`${SUPABASE_URL}/rest/v1/clinica_pacientes`, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(nuevoP)
+      });
+      const insData = await insResp.json();
+      if (Array.isArray(insData) && insData.length > 0) {
+        pacienteId = insData[0].id;
+      }
+    }
+
+    // 3. Buscar doctor asignado
+    const docResp = await fetch(`${SUPABASE_URL}/rest/v1/clinica_doctores?select=*`, { headers });
+    const doctores = await docResp.json();
+    let doctor = (Array.isArray(doctores) && doctores.length > 0) ? doctores[0] : { id: null, consultorio_asignado: 1 };
+    if (Array.isArray(doctores) && data.medico) {
+      const docFound = doctores.find(d => (d.nombre_completo || "").toLowerCase().includes((data.medico || "").toLowerCase()));
+      if (docFound) doctor = docFound;
+    }
+
+    // 4. Formatear fecha y hora
+    const fechaLimpia = (data.fecha || "").replace(/[^0-9-]/g, "") || new Date().toISOString().split("T")[0];
+    const horaLimpia = (data.hora || "10:00").length === 5 ? `${data.hora}:00` : "10:00:00";
+    const startIso = `${fechaLimpia}T${horaLimpia}Z`;
+
+    // 5. Insertar cita en Supabase con canal PRESENCIAL
+    const nuevaCita = {
+      erp_cita_id: data.erp_cita_id,
+      paciente_id: pacienteId,
+      doctor_id: doctor.id,
+      especialidad: data.especialidad || "General",
+      consultorio_num: doctor.consultorio_asignado || 1,
+      fecha_hora_inicio: startIso,
+      fecha_hora_fin: startIso,
+      estado: "PROGRAMADA",
+      canal_origen: "PRESENCIAL"
+    };
+
+    const citaResp = await fetch(`${SUPABASE_URL}/rest/v1/clinica_citas`, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(nuevaCita)
+    });
+
+    console.log("[Sync ERP -> Supabase] Cita sincronizada con éxito en Supabase:", data.erp_cita_id);
+    showToast(`Sincronizado con base de datos central (Supabase): ${data.erp_cita_id}`, "success");
+  } catch (err) {
+    console.warn("[Sync ERP -> Supabase] Error sincronizando con Supabase:", err.message);
+  }
+}
+
