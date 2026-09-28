@@ -1,0 +1,8 @@
+{
+  "ErpUrl": "http://72.61.24.118:8080/",
+  "BrowserType": "Chrome",
+  "TimeoutMs": 10000,
+  "SupabaseUrl": "https://ibnkmbcnkrvwdtrjmcel.supabase.co",
+  "ClinicaNombre": "Clínica Dental Neclatrony",
+  "ConsultoriosTotales": 6
+}

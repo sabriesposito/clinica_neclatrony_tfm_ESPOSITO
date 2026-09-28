@@ -1,0 +1,311 @@
+<Activity mc:Ignorable="sap sap2010" x:Class="Main"
+  xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:s="clr-namespace:System;assembly=System.Private.CoreLib"
+  xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation"
+  xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation"
+  xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib"
+  xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=System.Private.CoreLib"
+  xmlns:ui="http://schemas.uipath.com/workflow/activities"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <x:Members>
+    <x:Property Name="in_ErpUrl" Type="InArgument(x:String)" />
+    <x:Property Name="in_DniPaciente" Type="InArgument(x:String)" />
+    <x:Property Name="in_NombrePaciente" Type="InArgument(x:String)" />
+    <x:Property Name="in_TelefonoPaciente" Type="InArgument(x:String)" />
+    <x:Property Name="in_EmailPaciente" Type="InArgument(x:String)" />
+    <x:Property Name="in_Tratamiento" Type="InArgument(x:String)" />
+    <x:Property Name="in_FechaCita" Type="InArgument(x:String)" />
+    <x:Property Name="in_HoraCita" Type="InArgument(x:String)" />
+    <x:Property Name="in_Doctor" Type="InArgument(x:String)" />
+    <x:Property Name="out_ErpCitaId" Type="OutArgument(x:String)" />
+    <x:Property Name="out_Exito" Type="OutArgument(x:Boolean)" />
+  </x:Members>
+  <VisualBasic.Settings>
+    <x:Null />
+  </VisualBasic.Settings>
+  <sap:VirtualizedContainerService.HintSize>800,2600</sap:VirtualizedContainerService.HintSize>
+  <sap2010:WorkflowViewState.IdRef>ActivityBuilder_1</sap2010:WorkflowViewState.IdRef>
+  <TextExpression.NamespacesForImplementation>
+    <sco:Collection x:TypeArguments="x:String">
+      <x:String>System.Activities</x:String>
+      <x:String>System.Activities.Statements</x:String>
+      <x:String>System.Activities.Expressions</x:String>
+      <x:String>System.Activities.Validation</x:String>
+      <x:String>System.Activities.XamlIntegration</x:String>
+      <x:String>Microsoft.VisualBasic</x:String>
+      <x:String>Microsoft.VisualBasic.Activities</x:String>
+      <x:String>System</x:String>
+      <x:String>System.Collections</x:String>
+      <x:String>System.Collections.Generic</x:String>
+      <x:String>System.Collections.ObjectModel</x:String>
+      <x:String>System.Data</x:String>
+      <x:String>System.Diagnostics</x:String>
+      <x:String>System.Drawing</x:String>
+      <x:String>System.IO</x:String>
+      <x:String>System.Linq</x:String>
+      <x:String>System.Net.Mail</x:String>
+      <x:String>System.Xml</x:String>
+      <x:String>System.Xml.Linq</x:String>
+      <x:String>UiPath.Core</x:String>
+      <x:String>UiPath.Core.Activities</x:String>
+      <x:String>System.Windows.Markup</x:String>
+      <x:String>GlobalVariablesNamespace</x:String>
+      <x:String>GlobalConstantsNamespace</x:String>
+      <x:String>UiPath.UIAutomationNext.Enums</x:String>
+      <x:String>UiPath.UIAutomationCore.Contracts</x:String>
+      <x:String>System.Runtime.Serialization</x:String>
+      <x:String>System.Reflection</x:String>
+    </sco:Collection>
+  </TextExpression.NamespacesForImplementation>
+  <TextExpression.ReferencesForImplementation>
+    <sco:Collection x:TypeArguments="AssemblyReference">
+      <AssemblyReference>Microsoft.VisualBasic</AssemblyReference>
+      <AssemblyReference>mscorlib</AssemblyReference>
+      <AssemblyReference>PresentationCore</AssemblyReference>
+      <AssemblyReference>PresentationFramework</AssemblyReference>
+      <AssemblyReference>System</AssemblyReference>
+      <AssemblyReference>System.Activities</AssemblyReference>
+      <AssemblyReference>System.Collections</AssemblyReference>
+      <AssemblyReference>System.Core</AssemblyReference>
+      <AssemblyReference>System.Data</AssemblyReference>
+      <AssemblyReference>System.Drawing</AssemblyReference>
+      <AssemblyReference>System.Linq</AssemblyReference>
+      <AssemblyReference>System.ObjectModel</AssemblyReference>
+      <AssemblyReference>System.Private.CoreLib</AssemblyReference>
+      <AssemblyReference>System.Xaml</AssemblyReference>
+      <AssemblyReference>System.Xml</AssemblyReference>
+      <AssemblyReference>System.Xml.Linq</AssemblyReference>
+      <AssemblyReference>UiPath.System.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.UiAutomation.Activities</AssemblyReference>
+      <AssemblyReference>WindowsBase</AssemblyReference>
+      <AssemblyReference>UiPath.Studio.Constants</AssemblyReference>
+      <AssemblyReference>UiPath.UIAutomationNext</AssemblyReference>
+      <AssemblyReference>UiPath.UIAutomationCore</AssemblyReference>
+    </sco:Collection>
+  </TextExpression.ReferencesForImplementation>
+  <Sequence sap2010:Annotation.AnnotationText="Robot RPA: Inserción Automatizada de Citas en el ERP Dental Neclatrony (TFM EBIS). Recibe los datos del paciente y la cita, abre la interfaz web del ERP legacy, diligencia el formulario con selectores CSS estables y rescata el ID de confirmación." DisplayName="Main Sequence - Sincronización ERP Neclatrony" sap:VirtualizedContainerService.HintSize="680,2400" sap2010:WorkflowViewState.IdRef="Sequence_1">
+    <Sequence.Variables>
+      <Variable x:TypeArguments="x:String" Default="http://72.61.24.118:8080/" Name="strErpUrl" />
+      <Variable x:TypeArguments="x:String" Default="38522432" Name="strDni" />
+      <Variable x:TypeArguments="x:String" Default="Sabrina Esposito" Name="strNombre" />
+      <Variable x:TypeArguments="x:String" Default="1166266845" Name="strTelefono" />
+      <Variable x:TypeArguments="x:String" Default="sabrina@example.com" Name="strEmail" />
+      <Variable x:TypeArguments="x:String" Default="Implante dental" Name="strTratamiento" />
+      <Variable x:TypeArguments="x:String" Default="2026-10-15" Name="strFecha" />
+      <Variable x:TypeArguments="x:String" Default="10:30" Name="strHora" />
+      <Variable x:TypeArguments="x:String" Default="Dr. Sánchez" Name="strDoctor" />
+      <Variable x:TypeArguments="x:String" Name="strResultadoCitaId" />
+      <Variable x:TypeArguments="ui:Browser" Name="erpBrowser" />
+    </Sequence.Variables>
+    <sap:WorkflowViewStateService.ViewState>
+      <scg:Dictionary x:TypeArguments="x:String, x:Object">
+        <x:Boolean x:Key="IsExpanded">True</x:Boolean>
+        <x:Boolean x:Key="IsAnnotationDocked">True</x:Boolean>
+      </scg:Dictionary>
+    </sap:WorkflowViewStateService.ViewState>
+
+    <ui:LogMessage DisplayName="Log: Inicio RPA" sap:VirtualizedContainerService.HintSize="618,141" sap2010:WorkflowViewState.IdRef="LogMessage_1" Level="Info" Message="[&quot;[UiPath RPA] Iniciando robot de carga de citas en ERP Neclatrony...&quot;]" />
+
+    <TryCatch DisplayName="Try Catch - Proceso de Carga en ERP" sap:VirtualizedContainerService.HintSize="618,2000" sap2010:WorkflowViewState.IdRef="TryCatch_1">
+      <TryCatch.Try>
+        <Sequence DisplayName="Secuencia de Automatización Web" sap:VirtualizedContainerService.HintSize="580,1800" sap2010:WorkflowViewState.IdRef="Sequence_2">
+          <sap:WorkflowViewStateService.ViewState>
+            <scg:Dictionary x:TypeArguments="x:String, x:Object">
+              <x:Boolean x:Key="IsExpanded">True</x:Boolean>
+            </scg:Dictionary>
+          </sap:WorkflowViewStateService.ViewState>
+
+          <ui:OpenBrowser AutomaticallyDownloadWebDriver="{x:Null}" CommunicationMethod="{x:Null}" Hidden="{x:Null}" NewSession="{x:Null}" Private="{x:Null}" BrowserType="Chrome" DisplayName="Open Browser - ERP Neclatrony" sap:VirtualizedContainerService.HintSize="518,1600" sap2010:WorkflowViewState.IdRef="OpenBrowser_1" UiBrowser="[erpBrowser]" Url="[strErpUrl]">
+            <ui:OpenBrowser.Body>
+              <ActivityAction x:TypeArguments="x:Object">
+                <ActivityAction.Argument>
+                  <DelegateInArgument x:TypeArguments="x:Object" Name="ContextTarget" />
+                </ActivityAction.Argument>
+                <Sequence DisplayName="Diligenciamiento de Formulario de Cita" sap:VirtualizedContainerService.HintSize="484,1450" sap2010:WorkflowViewState.IdRef="Sequence_3">
+                  <sap:WorkflowViewStateService.ViewState>
+                    <scg:Dictionary x:TypeArguments="x:String, x:Object">
+                      <x:Boolean x:Key="IsExpanded">True</x:Boolean>
+                    </scg:Dictionary>
+                  </sap:WorkflowViewStateService.ViewState>
+
+                  <ui:MaximizeWindow Window="{x:Null}" DisplayName="Maximize Window" sap:VirtualizedContainerService.HintSize="422,30" sap2010:WorkflowViewState.IdRef="MaximizeWindow_1" />
+
+                  <!-- Navegación a la pestaña Nueva Cita -->
+                  <ui:Click AlterIfDisabled="{x:Null}" DelayBefore="{x:Null}" DelayMS="{x:Null}" SendWindowMessages="{x:Null}" SimulateClick="True" ClickType="CLICK_SINGLE" DisplayName="Click 'Nueva Cita'" sap:VirtualizedContainerService.HintSize="422,107" sap2010:WorkflowViewState.IdRef="Click_1" KeyModifiers="None" MouseButton="BTN_LEFT">
+                    <ui:Click.CursorPosition>
+                      <ui:CursorPosition Position="Center">
+                        <ui:CursorPosition.OffsetX>0</ui:CursorPosition.OffsetX>
+                        <ui:CursorPosition.OffsetY>0</ui:CursorPosition.OffsetY>
+                      </ui:CursorPosition>
+                    </ui:Click.CursorPosition>
+                    <ui:Click.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_btn_nueva_cita" InformativeScreenshot="nav_item" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='btn-nueva-cita' tag='BUTTON' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>10000</ui:Target.TimeoutMS>
+                      </ui:Target>
+                    </ui:Click.Target>
+                  </ui:Click>
+
+                  <!-- DNI Paciente -->
+                  <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-dni-paciente'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_1" Text="[strDni]">
+                    <ui:TypeInto.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_dni" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-dni-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
+                      </ui:Target>
+                    </ui:TypeInto.Target>
+                  </ui:TypeInto>
+
+                  <!-- Nombre Paciente -->
+                  <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-nombre-paciente'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_2" Text="[strNombre]">
+                    <ui:TypeInto.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_nombre" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-nombre-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
+                      </ui:Target>
+                    </ui:TypeInto.Target>
+                  </ui:TypeInto>
+
+                  <!-- Teléfono Paciente -->
+                  <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-telefono-paciente'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_3" Text="[strTelefono]">
+                    <ui:TypeInto.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_tel" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-telefono-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
+                      </ui:Target>
+                    </ui:TypeInto.Target>
+                  </ui:TypeInto>
+
+                  <!-- Email Paciente -->
+                  <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-email-paciente'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_4" Text="[strEmail]">
+                    <ui:TypeInto.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_email" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-email-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
+                      </ui:Target>
+                    </ui:TypeInto.Target>
+                  </ui:TypeInto>
+
+                  <!-- Tratamiento -->
+                  <ui:SelectItem AlterIfDisabled="{x:Null}" ContinueOnError="{x:Null}" DelayAfter="{x:Null}" DelayBefore="{x:Null}" DisplayName="Select Item 'select-tratamiento'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="SelectItem_1" Item="[strTratamiento]">
+                    <ui:SelectItem.Items>
+                      <scg:List x:TypeArguments="x:String" Capacity="16">
+                        <x:String>Limpieza dental</x:String>
+                        <x:String>Blanqueamiento dental</x:String>
+                        <x:String>Ortodoncia – Consulta inicial</x:String>
+                        <x:String>Empaste</x:String>
+                        <x:String>Extracción</x:String>
+                        <x:String>Implante dental</x:String>
+                        <x:String>Endodoncia</x:String>
+                        <x:String>Periodoncia</x:String>
+                        <x:String>Cirugía oral</x:String>
+                        <x:String>Revisión general</x:String>
+                      </scg:List>
+                    </ui:SelectItem.Items>
+                    <ui:SelectItem.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_tratamiento" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='select-tratamiento' tag='SELECT' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
+                      </ui:Target>
+                    </ui:SelectItem.Target>
+                  </ui:SelectItem>
+
+                  <!-- Fecha Cita -->
+                  <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-fecha-cita'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_5" Text="[strFecha]">
+                    <ui:TypeInto.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_fecha" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-fecha-cita' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
+                      </ui:Target>
+                    </ui:TypeInto.Target>
+                  </ui:TypeInto>
+
+                  <!-- Hora Cita -->
+                  <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-hora-cita'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_6" Text="[strHora]">
+                    <ui:TypeInto.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_hora" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-hora-cita' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
+                      </ui:Target>
+                    </ui:TypeInto.Target>
+                  </ui:TypeInto>
+
+                  <!-- Botón Guardar Cita -->
+                  <ui:Click AlterIfDisabled="{x:Null}" DelayBefore="{x:Null}" DelayMS="{x:Null}" SendWindowMessages="{x:Null}" SimulateClick="True" ClickType="CLICK_SINGLE" DisplayName="Click 'btn-guardar-cita'" sap:VirtualizedContainerService.HintSize="422,107" sap2010:WorkflowViewState.IdRef="Click_2" KeyModifiers="None" MouseButton="BTN_LEFT">
+                    <ui:Click.CursorPosition>
+                      <ui:CursorPosition Position="Center">
+                        <ui:CursorPosition.OffsetX>0</ui:CursorPosition.OffsetX>
+                        <ui:CursorPosition.OffsetY>0</ui:CursorPosition.OffsetY>
+                      </ui:CursorPosition>
+                    </ui:Click.CursorPosition>
+                    <ui:Click.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_btn_guardar" InformativeScreenshot="btn_guardar" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='btn-guardar-cita' tag='BUTTON' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>10000</ui:Target.TimeoutMS>
+                      </ui:Target>
+                    </ui:Click.Target>
+                  </ui:Click>
+
+                  <!-- Esperar y Extraer ID de Cita Registrada -->
+                  <ui:GetAttribute ContinueOnError="{x:Null}" Attribute="data-cita-id" DisplayName="Get Attribute 'data-cita-id'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="GetAttribute_1">
+                    <ui:GetAttribute.Result>
+                      <OutArgument x:TypeArguments="x:String">[strResultadoCitaId]</OutArgument>
+                    </ui:GetAttribute.Result>
+                    <ui:GetAttribute.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_msg_conf" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='mensaje-confirmacion' tag='P' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>10000</ui:Target.TimeoutMS>
+                      </ui:Target>
+                    </ui:GetAttribute.Target>
+                  </ui:GetAttribute>
+
+                  <!-- Asignar variables de salida -->
+                  <Assign DisplayName="Assign out_ErpCitaId" sap:VirtualizedContainerService.HintSize="422,60" sap2010:WorkflowViewState.IdRef="Assign_1">
+                    <Assign.To>
+                      <OutArgument x:TypeArguments="x:String">[out_ErpCitaId]</OutArgument>
+                    </Assign.To>
+                    <Assign.Value>
+                      <InArgument x:TypeArguments="x:String">[strResultadoCitaId]</InArgument>
+                    </Assign.Value>
+                  </Assign>
+
+                  <Assign DisplayName="Assign out_Exito" sap:VirtualizedContainerService.HintSize="422,60" sap2010:WorkflowViewState.IdRef="Assign_2">
+                    <Assign.To>
+                      <OutArgument x:TypeArguments="x:Boolean">[out_Exito]</OutArgument>
+                    </Assign.To>
+                    <Assign.Value>
+                      <InArgument x:TypeArguments="x:Boolean">[True]</InArgument>
+                    </Assign.Value>
+                  </Assign>
+
+                  <ui:LogMessage DisplayName="Log: Cita Guardada" sap:VirtualizedContainerService.HintSize="422,141" sap2010:WorkflowViewState.IdRef="LogMessage_2" Level="Info" Message="[&quot;[UiPath RPA] ¡ÉXITO! Cita impactada en el ERP Neclatrony con ID: &quot; + strResultadoCitaId]" />
+
+                </Sequence>
+              </ActivityAction>
+            </ui:OpenBrowser.Body>
+          </ui:OpenBrowser>
+        </Sequence>
+      </TryCatch.Try>
+      <TryCatch.Catches>
+        <Catch x:TypeArguments="s:Exception" sap:VirtualizedContainerService.HintSize="584,21" sap2010:WorkflowViewState.IdRef="Catch`1_1">
+          <sap:WorkflowViewStateService.ViewState>
+            <scg:Dictionary x:TypeArguments="x:String, x:Object">
+              <x:Boolean x:Key="IsExpanded">False</x:Boolean>
+              <x:Boolean x:Key="IsPinned">False</x:Boolean>
+            </scg:Dictionary>
+          </sap:WorkflowViewStateService.ViewState>
+          <ActivityAction x:TypeArguments="s:Exception">
+            <ActivityAction.Argument>
+              <DelegateInArgument x:TypeArguments="s:Exception" Name="exception" />
+            </ActivityAction.Argument>
+            <Sequence DisplayName="Manejo de Excepción" sap:VirtualizedContainerService.HintSize="400,260" sap2010:WorkflowViewState.IdRef="Sequence_4">
+              <Assign DisplayName="Assign Exito = False" sap:VirtualizedContainerService.HintSize="338,60" sap2010:WorkflowViewState.IdRef="Assign_3">
+                <Assign.To>
+                  <OutArgument x:TypeArguments="x:Boolean">[out_Exito]</OutArgument>
+                </Assign.To>
+                <Assign.Value>
+                  <InArgument x:TypeArguments="x:Boolean">[False]</InArgument>
+                </Assign.Value>
+              </Assign>
+              <ui:LogMessage DisplayName="Log Error" sap:VirtualizedContainerService.HintSize="338,141" sap2010:WorkflowViewState.IdRef="LogMessage_3" Level="Error" Message="[&quot;[UiPath RPA Error] Fallo al cargar cita en ERP: &quot; + exception.Message]" />
+            </Sequence>
+          </ActivityAction>
+        </Catch>
+      </TryCatch.Catches>
+      <TryCatch.Finally>
+        <ui:LogMessage DisplayName="Log Fin" sap:VirtualizedContainerService.HintSize="334,91" sap2010:WorkflowViewState.IdRef="LogMessage_4" Level="Info" Message="[&quot;[UiPath RPA] Ejecución de proceso finalizada.&quot;]" />
+      </TryCatch.Finally>
+    </TryCatch>
+  </Sequence>
+</Activity>
