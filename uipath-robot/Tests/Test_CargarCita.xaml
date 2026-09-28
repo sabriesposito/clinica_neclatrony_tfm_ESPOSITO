@@ -140,7 +140,7 @@
                       </ui:CursorPosition>
                     </ui:Click.CursorPosition>
                     <ui:Click.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_btn_nueva_cita" InformativeScreenshot="nav_item" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='btn-nueva-cita' tag='BUTTON' /&gt;" WaitForReady="COMPLETE">
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="a5499d67-a112-44d5-bddf-61bc602c1f78" InformativeScreenshot="nav_item" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='btn-nueva-cita' tag='BUTTON' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>10000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:Click.Target>
@@ -149,7 +149,7 @@
                   <!-- DNI Paciente -->
                   <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-dni-paciente'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_1" Text="[strDni]">
                     <ui:TypeInto.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_dni" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-dni-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="404779f9-f6d6-461d-97f2-b99e67491aff" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-dni-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:TypeInto.Target>
@@ -158,7 +158,7 @@
                   <!-- Nombre Paciente -->
                   <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-nombre-paciente'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_2" Text="[strNombre]">
                     <ui:TypeInto.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_nombre" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-nombre-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="52babe2d-7c8f-4656-94b7-ac0ec1ae3da9" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-nombre-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:TypeInto.Target>
@@ -167,7 +167,7 @@
                   <!-- Teléfono Paciente -->
                   <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-telefono-paciente'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_3" Text="[strTelefono]">
                     <ui:TypeInto.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_tel" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-telefono-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="b7c02433-fc73-4ca1-ac23-0fa3e7a1b4a9" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-telefono-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:TypeInto.Target>
@@ -176,7 +176,7 @@
                   <!-- Email Paciente -->
                   <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-email-paciente'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_4" Text="[strEmail]">
                     <ui:TypeInto.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_email" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-email-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="e06f82d8-602b-46b8-9e65-072dc2072a4c" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-email-paciente' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:TypeInto.Target>
@@ -199,7 +199,7 @@
                       </scg:List>
                     </ui:SelectItem.Items>
                     <ui:SelectItem.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_tratamiento" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='select-tratamiento' tag='SELECT' /&gt;" WaitForReady="COMPLETE">
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="c2e586c1-eae3-485b-acc8-92336a4ae5e2" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='select-tratamiento' tag='SELECT' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:SelectItem.Target>
@@ -208,7 +208,7 @@
                   <!-- Fecha Cita -->
                   <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-fecha-cita'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_5" Text="[strFecha]">
                     <ui:TypeInto.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_fecha" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-fecha-cita' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="b4e17e66-b86f-4bea-b59d-0869218480b0" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-fecha-cita' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:TypeInto.Target>
@@ -217,7 +217,7 @@
                   <!-- Hora Cita -->
                   <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-hora-cita'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_6" Text="[strHora]">
                     <ui:TypeInto.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_hora" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-hora-cita' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="f6a1bd44-3226-4e6e-a36a-b7e9a6d57db9" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-hora-cita' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:TypeInto.Target>
@@ -232,7 +232,7 @@
                       </ui:CursorPosition>
                     </ui:Click.CursorPosition>
                     <ui:Click.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_btn_guardar" InformativeScreenshot="btn_guardar" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='btn-guardar-cita' tag='BUTTON' /&gt;" WaitForReady="COMPLETE">
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="be5142fe-e19d-4c1d-8695-4de457966964" InformativeScreenshot="btn_guardar" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='btn-guardar-cita' tag='BUTTON' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>10000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:Click.Target>
@@ -244,7 +244,7 @@
                       <OutArgument x:TypeArguments="x:String">[strResultadoCitaId]</OutArgument>
                     </ui:GetAttribute.Result>
                     <ui:GetAttribute.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="target_msg_conf" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='mensaje-confirmacion' tag='P' /&gt;" WaitForReady="COMPLETE">
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="581e1486-611d-43e5-af0e-a0825c557411" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='mensaje-confirmacion' tag='P' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>10000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:GetAttribute.Target>
