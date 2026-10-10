@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupBusquedaPacientes();
   setupAgendaDatePicker();
   setupDoctoresForm();
+  fetchCitasFromSupabase();
 
   const badge = document.getElementById("badge-citas-hoy");
   if (badge) badge.textContent = getCitasHoy().length;
@@ -648,6 +649,66 @@ async function syncCitaToSupabase(data) {
     showToast(`Sincronizado con base de datos central (Supabase): ${data.erp_cita_id}`, "success");
   } catch (err) {
     console.warn("[Sync ERP -> Supabase] Error sincronizando con Supabase:", err.message);
+  }
+}
+
+// ── Sincronización Supabase -> ERP (Cargar citas remotas de Telegram / SSOT) ──
+async function fetchCitasFromSupabase() {
+  const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+  const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+  const headers = {
+    "apikey": SERVICE_KEY,
+    "Authorization": "Bearer " + SERVICE_KEY
+  };
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/clinica_citas?select=*,clinica_pacientes(id,nombre,apellidos,dni,telefono),clinica_doctores(nombre_completo)&order=fecha_hora_inicio.asc`, { headers });
+    if (!res.ok) return;
+    const remoteCitas = await res.json();
+    if (!Array.isArray(remoteCitas)) return;
+
+    const localCitas = getCitas();
+    let updated = false;
+
+    for (const rc of remoteCitas) {
+      if (!rc.fecha_hora_inicio) continue;
+      const fParts = rc.fecha_hora_inicio.split("T");
+      const fecha = fParts[0];
+      const hora = fParts[1] ? fParts[1].substring(0, 5) : "10:00";
+      const pacNombre = rc.clinica_pacientes ? `${rc.clinica_pacientes.nombre} ${rc.clinica_pacientes.apellidos || ''}`.trim() : "Paciente";
+      const medNombre = rc.clinica_doctores ? rc.clinica_doctores.nombre_completo : "Dra. Martínez";
+      const citaId = rc.erp_cita_id || rc.id;
+
+      const idx = localCitas.findIndex(c => c.id === citaId || c.erp_cita_id === citaId);
+      const citaObj = {
+        id: citaId,
+        erp_cita_id: citaId,
+        pacienteId: rc.paciente_id || "P_SUPA",
+        pacienteNombre: pacNombre,
+        tratamiento: rc.especialidad || "Consulta general",
+        fecha: fecha,
+        hora: hora,
+        medico: medNombre,
+        estado: (rc.estado || "confirmada").toLowerCase(),
+        notas: `Canal: ${rc.canal_origen || 'TELEGRAM'}`
+      };
+
+      if (idx >= 0) {
+        localCitas[idx] = { ...localCitas[idx], ...citaObj };
+        updated = true;
+      } else {
+        localCitas.push(citaObj);
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      saveCitas(localCitas);
+      renderDashboard();
+      renderAgendaView();
+    }
+  } catch(e) {
+    console.warn("[Sync Supabase -> ERP] Error cargando citas:", e);
   }
 }
 
