@@ -1,5 +1,11 @@
 {
+  "updatedAt": "2026-10-12T00:55:49.293Z",
+  "createdAt": "2026-04-16T17:27:17.467Z",
+  "id": "OvAlNElRLZffEXlQ97-VA",
   "name": "Neclatrony - Agente Conversacional de Recepción con Memoria",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -9,88 +15,92 @@
         ],
         "additionalFields": {}
       },
-      "id": "node-telegram-trigger",
+      "id": "58ff87fb-152f-4869-900d-f627a2c25201",
       "name": "Telegram Trigger",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.1,
       "position": [
-        180,
-        300
-      ]
+        112,
+        288
+      ],
+      "webhookId": "8d123d67-2cfd-4e0d-a17c-a0d4b16a361a",
+      "credentials": {
+        "telegramApi": {
+          "id": "JbrHzerIuI223H5K",
+          "name": "Neclatrony"
+        }
+      }
     },
     {
       "parameters": {
         "jsCode": "// Extraer chat_id, texto del paciente y nombre\nconst item = $input.first().json;\nlet chat_id = null;\nlet text = '';\nlet user_name = '';\n\nif (item.message) {\n  chat_id = String(item.message.chat.id);\n  text = item.message.text || '';\n  user_name = item.message.from.first_name || 'Paciente';\n} else if (item.callback_query) {\n  chat_id = String(item.callback_query.message.chat.id);\n  text = item.callback_query.data || '';\n  user_name = item.callback_query.from.first_name || 'Paciente';\n}\n\nreturn [{\n  json: {\n    chat_id,\n    text,\n    user_name,\n    sessionId: chat_id\n  }\n}];"
       },
-      "id": "node-normalizer",
+      "id": "32578e3e-e216-4354-8ebb-37383e38ee08",
       "name": "Normalizador de Mensaje",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        380,
-        300
+        432,
+        272
       ]
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "={{ $json.text }}",
-        "options": {
-          "systemMessage": "Eres Sofía, la recepcionista principal de la Clínica Dental Neclatrony (6 consultorios, cuadro médico: Dra. Martínez, Dr. Rodríguez en Ortodoncia, Dr. Sánchez en Cirugía e Implantes, Dr. Morales en Prótesis).\n\n===================================================================\nREGLA CRÍTICA DE FECHAS (CERO HARDCODING - 100% DINÁMICA):\n===================================================================\n1. NUNCA inventes ni asumas fechas fijas de tu memoria. Ninguna fecha está fija en el prompt.\n2. NUNCA ofrezcas fechas en el pasado (anteriores al día de hoy) ni fines de semana (la clínica abre de LUNES a VIERNES de 08:30 a 20:30 h).\n3. Para conocer la fecha actual real del sistema y las próximas fechas libres, DEBES llamar OBLIGATORIAMENTE a la herramienta 'consultar_disponibilidad_agenda'.\n4. La herramienta calculará en tiempo real cuál es el PRÓXIMO DÍA HÁBIL disponible relativo a hoy (sea el día o mes que sea) y te devolverá las fechas y horas exactas.\n5. Ofrece al paciente exclusivamente las fechas y horarios devueltos por la herramienta.\n\n===================================================================\nPROTOCOLO OBLIGATORIO DE AGENDAMIENTO (PASO A PASO):\n===================================================================\n\nPASO 1: IDENTIFICACIÓN\n- Solicita el DNI del paciente.\n- Llama a 'buscar_paciente' con el DNI. Si ya existe en el sistema, salúdalo calurosamente por su nombre y confirma sus datos.\n\nPASO 2: PREFERENCIAS\n- Pregunta amablemente al paciente qué franja horaria (mañana o tarde) o qué días prefiere para su atención.\n\nPASO 3: CONSULTAR DISPONIBILIDAD REAL\n- Llama SIEMPRE a la herramienta 'consultar_disponibilidad_agenda'.\n- Con las fechas devueltas por la herramienta, ofrece 2 o 3 opciones concretas a partir del PRÓXIMO DÍA HÁBIL (ej: \"Para el [Próximo día hábil devuelto por la herramienta] tengo turnos disponibles a las 10:30 o 16:30. ¿Cuál te viene mejor?\").\n\nPASO 4: CONFIRMACIÓN EXPLÍCITA OBLIGATORIA:\n- ANTES de agendar en el sistema, resume la cita y pide confirmación directa:\n  \"Perfecto, [Nombre]. ¿Te confirmo la cita para el [Día de la semana y Fecha] a las [Hora] con el/la [Doctor/a] para [Especialidad]?\"\n- NO llames a 'agendar_cita_uipath' en este paso. Espera a que el paciente responda afirmativamente (\"Sí\", \"Confirmo\", etc.).\n\nPASO 5: EJECUCIÓN DEL AGENDAMIENTO:\n- SOLO cuando el paciente responda afirmativamente al Paso 4:\n  1. Ejecuta la herramienta 'agendar_cita_uipath' pasando: dni, nombre, especialidad, doctor, fecha (formato YYYY-MM-DD del turno acordado), hora (HH:MM).\n  2. Confirma con entusiasmo que la cita quedó registrada con éxito en el sistema oficial de la clínica para esa fecha y hora, y recuérdale que recibirá un recordatorio 24h antes.\n\n===================================================================\nREGLAS ADICIONALES:\n- PRECIOS Y SEGUROS: Usa 'consultar_catalogo_rag'.\n- URGENCIAS: Usa 'alerta_urgencia_medica'.\n- NUNCA diagnostiques ni recetes medicamentos por chat."
-        }
-      },
-      "id": "node-agent",
-      "name": "AI Agent: Recepcionista Sofía",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.7,
-      "position": [
-        640,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "model": "gpt-4o",
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
         "options": {
           "temperature": 0.2
         }
       },
-      "id": "node-openai-model",
+      "id": "9095077a-a54a-4468-8775-70fc0e7b2bf6",
       "name": "OpenAI Chat Model (GPT-4o)",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        480,
-        520
-      ]
+        416,
+        512
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "zZq8eHy2nYo0WwfZ",
+          "name": "OpenAi abril 2026"
+        }
+      }
     },
     {
       "parameters": {
         "sessionKey": "={{ $('Normalizador de Mensaje').item.json.chat_id }}",
         "contextWindowLength": 15
       },
-      "id": "node-memory",
+      "id": "1f93c618-cd86-40b7-970f-667e7dd9aeac",
       "name": "Memoria Conversacional (Ida y Vuelta)",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        640,
-        520
+        576,
+        512
       ]
     },
     {
       "parameters": {
         "name": "consultar_disponibilidad_agenda",
-        "description": "Verifica huecos libres o si una fecha y hora exacta (ej: '15:00') está disponible para una especialidad o doctor. Parámetros: fecha (YYYY-MM-DD), hora (opcional, ej: '15:00'), especialidad ('General', 'Ortodoncia', 'Implante', 'Cirugía').",
-        "jsCode": "let input = {};\nif (typeof query === 'object' && query !== null) {\n  input = query;\n} else if (typeof query === 'string') {\n  try {\n    input = JSON.parse(query);\n  } catch (e) {\n    input = { raw: query };\n  }\n}\nconst rawStr = JSON.stringify(input).toLowerCase();\n\nconst dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];\nconst meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];\n\nfunction formatFechaEsp(d) {\n  return dias[d.getDay()] + ' ' + d.getDate() + ' de ' + meses[d.getMonth()] + ' de ' + d.getFullYear();\n}\n\nfunction toIsoDate(d) {\n  const y = d.getFullYear();\n  const m = String(d.getMonth() + 1).padStart(2, '0');\n  const day = String(d.getDate()).padStart(2, '0');\n  return y + '-' + m + '-' + day;\n}\n\n// Calcular dinámicamente los próximos días hábiles a partir de hoy en tiempo real\nconst hoy = new Date();\nconst diasHabiles = [];\nlet cursor = new Date(hoy);\n\nwhile (diasHabiles.length < 3) {\n  cursor.setDate(cursor.getDate() + 1);\n  const dw = cursor.getDay();\n  if (dw !== 0 && dw !== 6) { // Lunes a Viernes\n    diasHabiles.push({\n      fecha_iso: toIsoDate(cursor),\n      nombre_dia: formatFechaEsp(cursor),\n      turnos_disponibles: ['10:30', '12:00', '16:30', '17:30']\n    });\n  }\n}\n\n// Si se pide una hora restringida (ej: 15:00)\nif (rawStr.includes('15:00') || (input.hora && input.hora.includes('15:00'))) {\n  return JSON.stringify({\n    disponible: false,\n    motivo: 'El turno de las 15:00 está reservado para una cirugía prolongada en el consultorio.',\n    alternativas_disponibles: ['15:45', '16:30', '17:15', '18:00'],\n    proximos_dias_habiles: diasHabiles\n  });\n}\n\nreturn JSON.stringify({\n  disponible: true,\n  fecha_actual_sistema: toIsoDate(hoy),\n  proximos_dias_habiles: diasHabiles,\n  primer_dia_habil_disponible: diasHabiles[0],\n  jornada: '08:30 a 20:30 h de lunes a viernes en los 6 consultorios de la clínica',\n  regla_estricta: 'Ofrece obligatoriamente turnos en el PRÓXIMO DÍA HÁBIL disponible (' + diasHabiles[0].nombre_dia + '). Jamás ofrezcas fechas pasadas.'\n});"
+        "description": "Consulta disponibilidad de turnos. Si el paciente pide un día o fecha específica (ej: 'próximo jueves', 'en 2 semanas', '15 de octubre'), pasa la fecha calculada en formato YYYY-MM-DD. Si no pide fecha, déjalo vacío para recibir las próximas fechas hábiles.",
+        "jsCode": "let input = {};\nif (typeof query === 'object' && query !== null) {\n  input = query;\n} else if (typeof query === 'string') {\n  try {\n    input = JSON.parse(query);\n  } catch (e) {\n    input = { raw: query };\n  }\n}\nconst rawStr = JSON.stringify(input).toLowerCase();\n\nconst dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];\nconst meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];\n\nfunction formatFechaEsp(d) {\n  return dias[d.getDay()] + ' ' + d.getDate() + ' de ' + meses[d.getMonth()] + ' de ' + d.getFullYear();\n}\n\nfunction toIsoDate(d) {\n  const y = d.getFullYear();\n  const m = String(d.getMonth() + 1).padStart(2, '0');\n  const day = String(d.getDate()).padStart(2, '0');\n  return y + '-' + m + '-' + day;\n}\n\nconst hoy = new Date();\nhoy.setHours(0, 0, 0, 0);\n\n// Detectar si el usuario o agente solicita una fecha específica\nlet fechaStr = input.fecha || '';\nif (!fechaStr) {\n  const m = rawStr.match(/202[0-9]-[0-1][0-9]-[0-3][0-9]/);\n  if (m) fechaStr = m[0];\n}\n\n// SI EL PACIENTE PIDE UNA FECHA ESPECÍFICA (ej: próximo jueves, en 2 semanas, etc.)\nif (fechaStr) {\n  const parts = fechaStr.split('-');\n  if (parts.length === 3) {\n    const targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));\n    targetDate.setHours(0, 0, 0, 0);\n\n    // 1. Validar que no sea fecha pasada\n    if (targetDate < hoy) {\n      return JSON.stringify({\n        disponible: false,\n        error: 'FECHA_PASADA',\n        motivo: 'La fecha solicitada (' + fechaStr + ') ya ha pasado. Por favor solicita una fecha futura.'\n      });\n    }\n\n    // 2. Validar que no sea fin de semana\n    const dw = targetDate.getDay();\n    if (dw === 0 || dw === 6) {\n      return JSON.stringify({\n        disponible: false,\n        error: 'FIN_DE_SEMANA',\n        motivo: 'La clínica abre exclusivamente de lunes a viernes de 08:30 a 20:30 h. El ' + formatFechaEsp(targetDate) + ' es fin de semana. Por favor elige un día hábil.'\n      });\n    }\n\n    // 3. Es un día hábil futuro válido: ¡DAR DISPONIBILIDAD!\n    let turnos = ['10:30', '12:00', '16:30', '17:30'];\n    if (rawStr.includes('15:00') || (input.hora && input.hora.includes('15:00'))) {\n      turnos = ['15:45', '16:30', '17:15', '18:00'];\n    }\n\n    return JSON.stringify({\n      disponible: true,\n      fecha_solicitada: fechaStr,\n      dia_solicitado: formatFechaEsp(targetDate),\n      turnos_disponibles: turnos,\n      mensaje: 'Hay turnos disponibles para el ' + formatFechaEsp(targetDate) + '. Ofrécele al paciente estas opciones horarias.'\n    });\n  }\n}\n\n// SI NO PIDIÓ FECHA CONCRETA (consulta genérica de próximos turnos disponibles)\nconst diasHabiles = [];\nlet cursor = new Date(hoy);\n\nwhile (diasHabiles.length < 4) {\n  cursor.setDate(cursor.getDate() + 1);\n  const dw = cursor.getDay();\n  if (dw !== 0 && dw !== 6) {\n    diasHabiles.push({\n      fecha_iso: toIsoDate(cursor),\n      nombre_dia: formatFechaEsp(cursor),\n      turnos_disponibles: ['10:30', '12:00', '16:30', '17:30']\n    });\n  }\n}\n\nreturn JSON.stringify({\n  disponible: true,\n  mensaje: 'El paciente puede agendar para cualquier fecha futura de lunes a viernes. Si no tiene preferencia, aquí están las próximas fechas hábiles más cercanas:',\n  proximas_fechas_sugeridas: diasHabiles\n});",
+        "specifyInputSchema": true,
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"especialidad\": \"Ortodoncia\",\n  \"fecha\": \"2026-10-15\",\n  \"hora\": \"17:00\"\n}"
       },
-      "id": "tool-disponibilidad",
+      "id": "c7d2bec7-bfda-4066-a011-f1641aedba29",
       "name": "Tool: Disponibilidad Agenda",
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        800,
-        520
+        736,
+        512
       ]
     },
     {
@@ -99,13 +109,13 @@
         "description": "Busca un paciente por su DNI en el sistema de la clínica. Parámetro: dni (string). Devuelve datos del paciente, citas previas o indica si es nuevo.",
         "jsCode": "let dni = '';\nif (typeof query === 'object' && query !== null) {\n  dni = (query.dni || query.DNI || query.documento || '').toString().toUpperCase();\n} else if (typeof query === 'string') {\n  try {\n    const p = JSON.parse(query);\n    dni = (p.dni || p.DNI || p.documento || query).toString().toUpperCase();\n  } catch (e) {\n    dni = query.toUpperCase();\n  }\n}\nconst cleanDni = dni.replace(/[^0-9A-Z]/gi, '').trim();\n\nif (!cleanDni) {\n  return JSON.stringify({ encontrado: false, mensaje: 'DNI no proporcionado. Solicita el DNI al paciente.' });\n}\n\nconst https = require('https');\nconst HOST = 'ibnkmbcnkrvwdtrjmcel.supabase.co';\nconst SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40';\n\nfunction getSupabase(reqPath) {\n  return new Promise((resolve, reject) => {\n    const req = https.request({\n      hostname: HOST,\n      port: 443,\n      path: reqPath,\n      method: 'GET',\n      headers: {\n        'apikey': SERVICE_KEY,\n        'Authorization': 'Bearer ' + SERVICE_KEY\n      }\n    }, (res) => {\n      let data = '';\n      res.on('data', chunk => data += chunk);\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); } catch (e) { resolve(data); }\n      });\n    });\n    req.on('error', reject);\n    req.end();\n  });\n}\n\ntry {\n  const pData = await getSupabase('/rest/v1/clinica_pacientes?dni=eq.' + cleanDni + '&select=*');\n  if (Array.isArray(pData) && pData.length > 0) {\n    const pac = pData[0];\n    let ultCita = 'Sin citas previas registradas';\n    try {\n      const cData = await getSupabase('/rest/v1/clinica_citas?paciente_id=eq.' + pac.id + '&order=fecha.desc&limit=1&select=*');\n      if (Array.isArray(cData) && cData.length > 0) {\n        ultCita = cData[0].fecha + ' (' + (cData[0].motivo || 'Consulta') + ' - ' + (cData[0].estado || 'PENDIENTE') + ')';\n      }\n    } catch(errCita) {}\n\n    return JSON.stringify({\n      encontrado: true,\n      paciente: {\n        id: pac.id,\n        nombre: pac.nombre,\n        dni: pac.dni,\n        telefono: pac.telefono,\n        email: pac.email,\n        historial_resumen: pac.historial_resumen || 'Sin antecedentes médicos de relevancia.',\n        ultima_cita: ultCita\n      },\n      instruccion_agente: 'Saluda al paciente por su nombre (' + pac.nombre + '), confirma amablemente sus datos y pregúntale en qué puedes ayudarle hoy.'\n    });\n  } else {\n    return JSON.stringify({\n      encontrado: false,\n      mensaje: 'Paciente con DNI ' + cleanDni + ' no figura en la base de datos de Neclatrony.',\n      instruccion_agente: 'Indica amablemente que no encuentras su ficha con ese DNI. Pídele su nombre completo y teléfono para registrarlo como nuevo paciente.'\n    });\n  }\n} catch (error) {\n  return JSON.stringify({\n    encontrado: false,\n    error: error.message,\n    mensaje: 'Error conectando a Supabase: ' + error.message\n  });\n}"
       },
-      "id": "tool-buscar-paciente",
+      "id": "89830aa4-8713-4ad7-a7f7-c70ad47def92",
       "name": "Tool: Buscar Paciente DNI",
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        960,
-        520
+        896,
+        512
       ]
     },
     {
@@ -114,13 +124,13 @@
         "description": "Consulta el catálogo clínico de tratamientos, precios, financiación a 36 meses y aseguradoras (Sanitas, Adeslas, Mapfre, DKV, Asisa). Parámetro: pregunta (string).",
         "jsCode": "let q = '';\nif (typeof query === 'object' && query !== null) {\n  q = (query.pregunta || query.query || JSON.stringify(query)).toLowerCase();\n} else if (typeof query === 'string') {\n  try {\n    const parsed = JSON.parse(query);\n    q = (parsed.pregunta || parsed.query || JSON.stringify(parsed)).toLowerCase();\n  } catch (e) {\n    q = query.toLowerCase();\n  }\n}\n\nif (q.includes('precio') || q.includes('cuesta') || q.includes('cuanto') || q.includes('valor') || q.includes('implante') || q.includes('ortodoncia') || q.includes('limpieza') || q.includes('empaste')) {\n  return JSON.stringify({\n    implante_unitario: 'Desde 590 euros implante de titanio; corona de zirconio desde 480 euros',\n    ortodoncia_invisible: 'Alineadores transparentes desde 2.400 hasta 3.900 euros financiable',\n    limpieza_dental: '45 euros (gratuita una vez al año para asegurados de Sanitas, Adeslas, Mapfre, DKV, Asisa)',\n    empaste_composite: '50 a 70 euros según caras anatómicas',\n    financiacion: 'Hasta 36 meses sin intereses (TIN 0%, TAE 0%) para tratamientos mayores a 1.000 euros',\n    convenio_sanitas: 'Centro concertado con Sanitas Dental: incluye revisión anual y una limpieza gratis al año, con 30-40% de descuento en implantes y ortodoncia.'\n  });\n}\n\nif (q.includes('seguro') || q.includes('sanitas') || q.includes('adeslas') || q.includes('mapfre') || q.includes('dkv') || q.includes('asisa')) {\n  return JSON.stringify({\n    conciertos: 'Centro concertado preferente con Sanitas Dental, Adeslas Dental, Mapfre Caja Salud, DKV y Asisa.',\n    coberturas: 'Revisión anual, ortopantomografía y limpieza anual gratuitas incluidas. Descuentos de hasta el 40% en implantes y ortodoncia.'\n  });\n}\n\nreturn JSON.stringify({\n  informacion: 'Clínica Dental Neclatrony cuenta con 6 consultorios y especialistas en General, Ortodoncia, Implantes y Cirugía de lunes a viernes de 08:30 a 20:30.'\n});"
       },
-      "id": "tool-rag",
+      "id": "9487d3e4-2eca-4e47-b71e-f2fc73814ca3",
       "name": "Tool: Catálogo Clínico RAG",
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        1120,
-        520
+        1056,
+        512
       ]
     },
     {
@@ -130,15 +140,15 @@
         "jsCode": "let input = {};\nif (typeof query === 'object' && query !== null) {\n  input = query;\n} else if (typeof query === 'string') {\n  try {\n    input = JSON.parse(query);\n  } catch (e) {\n    input = { datos_crudos: query };\n  }\n}\n\nconst https = require('https');\nconst HOST = 'ibnkmbcnkrvwdtrjmcel.supabase.co';\nconst SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40';\n\nconst baseHeaders = {\n  'apikey': SERVICE_KEY,\n  'Authorization': 'Bearer ' + SERVICE_KEY,\n  'Content-Type': 'application/json',\n  'Prefer': 'return=representation'\n};\n\nfunction getSupabase(reqPath) {\n  return new Promise((resolve, reject) => {\n    const req = https.request({\n      hostname: HOST,\n      port: 443,\n      path: reqPath,\n      method: 'GET',\n      headers: baseHeaders\n    }, (res) => {\n      let data = '';\n      res.on('data', chunk => data += chunk);\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); } catch (e) { resolve(data); }\n      });\n    });\n    req.on('error', reject);\n    req.end();\n  });\n}\n\nfunction postSupabase(reqPath, body) {\n  return new Promise((resolve, reject) => {\n    const postData = typeof body === 'string' ? body : JSON.stringify(body);\n    const req = https.request({\n      hostname: HOST,\n      port: 443,\n      path: reqPath,\n      method: 'POST',\n      headers: baseHeaders\n    }, (res) => {\n      let data = '';\n      res.on('data', chunk => data += chunk);\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); } catch (e) { resolve(data); }\n      });\n    });\n    req.on('error', reject);\n    req.write(postData);\n    req.end();\n  });\n}\n\nfunction patchSupabase(reqPath, body) {\n  return new Promise((resolve, reject) => {\n    const postData = typeof body === 'string' ? body : JSON.stringify(body);\n    const req = https.request({\n      hostname: HOST,\n      port: 443,\n      path: reqPath,\n      method: 'PATCH',\n      headers: baseHeaders\n    }, (res) => {\n      let data = '';\n      res.on('data', chunk => data += chunk);\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); } catch (e) { resolve(data); }\n      });\n    });\n    req.on('error', reject);\n    req.write(postData);\n    req.end();\n  });\n}\n\nfunction toIsoDate(d) {\n  const y = d.getFullYear();\n  const m = String(d.getMonth() + 1).padStart(2, '0');\n  const day = String(d.getDate()).padStart(2, '0');\n  return y + '-' + m + '-' + day;\n}\n\nfunction getNextBusinessDayIso() {\n  let d = new Date();\n  do {\n    d.setDate(d.getDate() + 1);\n  } while (d.getDay() === 0 || d.getDay() === 6);\n  return toIsoDate(d);\n}\n\nlet dni = (input.dni || input.DNI || '').toString().replace(/[^0-9A-Z]/gi, '').trim();\nlet nombreCompleto = (input.nombre || input.nombre_completo || input.paciente || '').toString().trim();\nlet telefono = (input.telefono || input.celular || '').toString().trim();\nlet especialidad = (input.especialidad || 'General').toString().trim();\nlet fecha = (input.fecha || '').toString().trim();\nlet hora = (input.hora || '').toString().trim();\n\nconst rawStr = JSON.stringify(input);\nif (!fecha) {\n  const mFecha = rawStr.match(/202[0-9]-[0-1][0-9]-[0-3][0-9]/);\n  if (mFecha) {\n    fecha = mFecha[0];\n  } else {\n    fecha = getNextBusinessDayIso();\n  }\n}\n\nif (!hora) {\n  const mHora = rawStr.match(/([0-2]?[0-9]:[0-5][0-9])/);\n  if (mHora) {\n    hora = mHora[1];\n  } else {\n    hora = '10:30';\n  }\n}\n\nif (!dni && input.datos_crudos) {\n  const mDni = input.datos_crudos.match(/([0-9]{7,8}[A-Z]|[XYZ][0-9]{7}[A-Z]|[0-9]{8})/i);\n  if (mDni) dni = mDni[0].toUpperCase();\n}\n\ntry {\n  let pacienteId = null;\n\n  if (dni) {\n    const pData = await getSupabase('/rest/v1/clinica_pacientes?dni=eq.' + dni + '&select=id,nombre,apellidos');\n    if (Array.isArray(pData) && pData.length > 0) {\n      pacienteId = pData[0].id;\n    }\n  }\n\n  if (!pacienteId) {\n    const partes = nombreCompleto ? nombreCompleto.split(' ') : ['Paciente'];\n    const nuevoPaciente = {\n      dni: dni || ('DNI-' + Math.floor(10000000 + Math.random() * 90000000)),\n      nombre: partes[0] || 'Paciente',\n      apellidos: partes.slice(1).join(' ') || '',\n      telefono: telefono || '600000000',\n      acepta_rgpd: true,\n      fecha_alta: new Date().toISOString()\n    };\n\n    const insData = await postSupabase('/rest/v1/clinica_pacientes', nuevoPaciente);\n    if (Array.isArray(insData) && insData.length > 0) {\n      pacienteId = insData[0].id;\n    }\n  }\n\n  const doctores = await getSupabase('/rest/v1/clinica_doctores?select=*');\n  let doctorAsignado = (Array.isArray(doctores) && doctores.length > 0) ? doctores[0] : { id: null, consultorio_asignado: 1, nombre_completo: 'Dra. Martínez', especialidad: 'General' };\n\n  if (Array.isArray(doctores)) {\n    const espNorm = especialidad.toLowerCase();\n    const found = doctores.find(d => (d.especialidad || '').toLowerCase().includes(espNorm));\n    if (found) doctorAsignado = found;\n  }\n\n  const fechaLimpia = fecha.replace(/[^0-9-]/g, '') || getNextBusinessDayIso();\n  const horaLimpia = hora.length === 5 ? (hora + ':00') : (hora.length === 8 ? hora : '10:30:00');\n  const startIso = fechaLimpia + 'T' + horaLimpia + 'Z';\n\n  const espFinal = doctorAsignado.especialidad || especialidad;\n\n  // Reprogramación automática si ya tiene una cita activa para la misma especialidad\n  const prevCitas = await getSupabase('/rest/v1/clinica_citas?paciente_id=eq.' + pacienteId + '&especialidad=eq.' + encodeURIComponent(espFinal) + '&estado=eq.PROGRAMADA&select=*');\n\n  let citaCode = '';\n  if (Array.isArray(prevCitas) && prevCitas.length > 0) {\n    const cExist = prevCitas[0];\n    citaCode = cExist.erp_cita_id || ('NEC-' + Math.floor(1000 + Math.random() * 9000));\n    await patchSupabase('/rest/v1/clinica_citas?id=eq.' + cExist.id, {\n      doctor_id: doctorAsignado.id,\n      consultorio_num: doctorAsignado.consultorio_asignado || 1,\n      fecha_hora_inicio: startIso,\n      fecha_hora_fin: startIso,\n      canal_origen: 'TELEGRAM',\n      fecha_actualizacion: new Date().toISOString()\n    });\n  } else {\n    citaCode = 'NEC-' + Math.floor(1000 + Math.random() * 9000);\n    const nuevaCita = {\n      erp_cita_id: citaCode,\n      paciente_id: pacienteId,\n      doctor_id: doctorAsignado.id,\n      especialidad: espFinal,\n      consultorio_num: doctorAsignado.consultorio_asignado || 1,\n      fecha_hora_inicio: startIso,\n      fecha_hora_fin: startIso,\n      estado: 'PROGRAMADA',\n      canal_origen: 'TELEGRAM'\n    };\n    await postSupabase('/rest/v1/clinica_citas', nuevaCita);\n  }\n\n  return JSON.stringify({\n    estado: 'EXITO',\n    id_cita: citaCode,\n    doctor: doctorAsignado.nombre_completo,\n    consultorio: doctorAsignado.consultorio_asignado,\n    especialidad: espFinal,\n    paciente: nombreCompleto,\n    dni: dni,\n    fecha_hora: fechaLimpia + ' a las ' + horaLimpia.slice(0, 5),\n    confirmacion: 'Cita y paciente registrados exitosamente en la base de datos oficial Supabase de la clínica.'\n  });\n} catch (err) {\n  return JSON.stringify({\n    estado: 'PARCIAL',\n    id_cita: 'NEC-' + Math.floor(1000 + Math.random() * 9000),\n    error: err.message,\n    mensaje: 'Cita guardada en contingencia.'\n  });\n}",
         "specifyInputSchema": true,
         "schemaType": "fromJson",
-        "jsonSchemaExample": "{\n  \"dni\": \"38522432\",\n  \"nombre\": \"Sabrina\",\n  \"especialidad\": \"Ortodoncia\",\n  \"doctor\": \"Dr. Rodr\\u00edguez\",\n  \"fecha\": \"2026-10-14\",\n  \"hora\": \"17:00\"\n}"
+        "jsonSchemaExample": "{\n  \"dni\": \"38522432\",\n  \"nombre\": \"Sabrina\",\n  \"especialidad\": \"Ortodoncia\",\n  \"doctor\": \"Dr. Rodr\\u00edguez\",\n  \"fecha\": \"2026-10-15\",\n  \"hora\": \"17:00\"\n}"
       },
-      "id": "tool-agendar-uipath",
+      "id": "8a2f1571-c872-4fd7-949e-74353c8a55b5",
       "name": "Tool: Agendar Cita UiPath",
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        1280,
-        520
+        1216,
+        512
       ]
     },
     {
@@ -147,31 +157,54 @@
         "description": "Dispara una alarma inmediata a recepción para pacientes con dolor insoportable, hemorragia o traumatismo grave. Parámetros: sintomas (string), telefono (string).",
         "jsCode": "let input = {};\ntry {\n  if (typeof query !== 'undefined' && query) {\n    input = typeof query === 'string' ? JSON.parse(query) : query;\n  }\n} catch (e) {\n  input = {};\n}\n\nreturn JSON.stringify({\n  alerta_disparada: true,\n  prioridad: 'CRITICA',\n  recepcion_notificada: true,\n  instrucciones_primeros_auxilios: 'Presión continua con gasa, frío local externo, no automedicarse.'\n});"
       },
-      "id": "tool-urgencia",
+      "id": "492626e0-3919-4a76-8df8-4b5ec64be376",
       "name": "Tool: Alerta Urgencia",
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        1440,
-        520
+        1376,
+        512
       ]
     },
     {
       "parameters": {
-        "operation": "sendMessage",
         "chatId": "={{ $('Normalizador de Mensaje').item.json.chat_id }}",
         "text": "={{ $json.output }}",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
-      "id": "node-telegram-out",
+      "id": "cb6667c0-bef0-4370-b9b9-057d16a739aa",
       "name": "Telegram: Enviar Respuesta",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        920,
-        300
+        1344,
+        272
+      ],
+      "webhookId": "934a6397-d756-4b42-9099-9e82eba7d0d1",
+      "credentials": {
+        "telegramApi": {
+          "id": "JbrHzerIuI223H5K",
+          "name": "Neclatrony"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "Eres Sofía, la recepcionista principal de la Clínica Dental Neclatrony (6 consultorios, cuadro médico: Dra. Martínez, Dr. Rodríguez en Ortodoncia, Dr. Sánchez en Cirugía e Implantes, Dr. Morales en Prótesis).\n\n===================================================================\nREGLAS FUNDAMENTALES DE FECHAS (FLEXIBILIDAD A CUALQUIER FECHA FUTURA):\n===================================================================\n1. EL PACIENTE PUEDE AGENDAR PARA LA FECHA QUE DESEE:\n   - El paciente puede solicitar cita para cualquier día: mañana, el próximo jueves, dentro de dos semanas, el mes siguiente, etc.\n   - Si el paciente pide una fecha o día específico (ej: \"el próximo jueves\", \"el 20 de octubre\", \"de acá a dos semanas\"), calcula la fecha ISO (YYYY-MM-DD) y consulta disponibilidad con 'consultar_disponibilidad_agenda' para esa fecha.\n   - NUNCA le digas al paciente que solo se puede agendar para el próximo día hábil. El \"próximo día hábil\" es ÚNICAMENTE una sugerencia cuando el paciente no tiene preferencia y pregunta \"¿cuándo es lo más pronto que tienen?\".\n\n2. REGLA ESTRICTA DE SEGURIDAD (TOLERANCIA CERO):\n   - NUNCA agendes fechas en el pasado (anteriores al día de hoy).\n   - NUNCA agendes en fines de semana (sábados y domingos). La clínica atiende de LUNES a VIERNES de 08:30 a 20:30 h.\n   - Si el paciente pide un fin de semana, aclárale amablemente que la clínica atiende de lunes a viernes y ofrécele el viernes anterior o el lunes siguiente.\n\n===================================================================\nPROTOCOLO OBLIGATORIO DE AGENDAMIENTO (PASO A PASO):\n===================================================================\n\nPASO 1: IDENTIFICACIÓN\n- Solicita el DNI del paciente.\n- Llama a 'buscar_paciente' con el DNI. Si ya existe, salúdalo por su nombre.\n\nPASO 2: PREFERENCIAS\n- Pregunta qué día o franja horaria (mañana o tarde) le viene mejor.\n\nPASO 3: CONSULTAR DISPONIBILIDAD\n- Llama a 'consultar_disponibilidad_agenda' pasando la fecha solicitada o especialidad.\n- Si el paciente pidió una fecha concreta (ej: el próximo jueves), ofrece los turnos disponibles para ese día.\n- Si no especificó fecha, ofrece los turnos del próximo día hábil disponible.\n\nPASO 4: CONFIRMACIÓN EXPLÍCITA OBLIGATORIA:\n- ANTES de agendar en el sistema, resume la cita y pide confirmación directa:\n  \"Perfecto, [Nombre]. ¿Te confirmo la cita para el [Día de la semana y Fecha] a las [Hora] con el/la [Doctor/a] para [Especialidad]?\"\n- NO llames a 'agendar_cita_uipath' en este paso. Espera a que el paciente responda \"Sí\", \"Confirmo\", etc.\n\nPASO 5: EJECUCIÓN DEL AGENDAMIENTO:\n- SOLO cuando el paciente responda afirmativamente al Paso 4:\n  1. Ejecuta 'agendar_cita_uipath' pasando: dni, nombre, especialidad, doctor, fecha (YYYY-MM-DD), hora (HH:MM).\n  2. Confirma con entusiasmo que la cita quedó registrada con éxito en el sistema oficial para esa fecha y hora, recordando que recibirá un recordatorio 24h antes.\n\n===================================================================\nREGLAS ADICIONALES:\n- PRECIOS Y SEGUROS: Usa 'consultar_catalogo_rag'.\n- URGENCIAS: Usa 'alerta_urgencia_medica'.\n- NUNCA diagnostiques ni recetes medicamentos por chat."
+        }
+      },
+      "id": "09e7d9f9-4032-460b-912f-928c2b732770",
+      "name": "AI Agent: Recepcionista Sofía",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        800,
+        240
       ]
     }
   ],
@@ -192,17 +225,6 @@
         [
           {
             "node": "AI Agent: Recepcionista Sofía",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Agent: Recepcionista Sofía": {
-      "main": [
-        [
-          {
-            "node": "Telegram: Enviar Respuesta",
             "type": "main",
             "index": 0
           }
@@ -285,6 +307,63 @@
           }
         ]
       ]
+    },
+    "AI Agent: Recepcionista Sofía": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Enviar Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
-  }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "635bbddf-b864-4e22-b557-a5c395946f49",
+  "activeVersionId": "635bbddf-b864-4e22-b557-a5c395946f49",
+  "versionCounter": 109,
+  "triggerCount": 1,
+  "tags": [
+    {
+      "updatedAt": "2026-04-16T17:27:19.892Z",
+      "createdAt": "2026-04-16T17:27:19.892Z",
+      "id": "pDph35TH80YDTYPH",
+      "name": "TFM"
+    },
+    {
+      "updatedAt": "2026-04-16T17:27:21.423Z",
+      "createdAt": "2026-04-16T17:27:21.423Z",
+      "id": "P5Jfq6W22poFsdsS",
+      "name": "Master"
+    }
+  ],
+  "shared": [
+    {
+      "updatedAt": "2026-04-16T17:27:17.467Z",
+      "createdAt": "2026-04-16T17:27:17.467Z",
+      "role": "workflow:owner",
+      "workflowId": "OvAlNElRLZffEXlQ97-VA",
+      "projectId": "QCGhVxQ75ccCtMvT",
+      "project": {
+        "updatedAt": "2026-01-21T20:27:11.099Z",
+        "createdAt": "2026-01-21T15:20:30.254Z",
+        "id": "QCGhVxQ75ccCtMvT",
+        "name": "Sabrina Esposito <espositosabrina29@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "82e449e5-9235-4d50-b9bd-748917f51496"
+      }
+    }
+  ]
 }
