@@ -311,6 +311,7 @@ input[type="email"],
 input[type="tel"],
 input[type="date"],
 input[type="time"],
+input[type="number"],
 select,
 textarea {
   padding: 9px var(--sp-3);
