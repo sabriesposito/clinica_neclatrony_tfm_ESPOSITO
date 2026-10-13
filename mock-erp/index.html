@@ -347,9 +347,13 @@
           <h1 class="page-title">Doctores</h1>
           <p class="page-subtitle">Gestión del equipo médico</p>
         </div>
+        <button class="btn btn-primary" id="btn-abrir-nuevo-doctor">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuevo Doctor
+        </button>
       </div>
 
-      <div class="card" style="max-width:520px;margin-bottom:var(--sp-6)">
+      <div class="card" style="margin-bottom:var(--sp-6)">
         <div class="card-header">
           <span class="card-title">Agregar doctor</span>
         </div>
@@ -357,11 +361,27 @@
         <div class="form-grid">
           <div class="form-group">
             <label for="input-medico-nombre">Nombre completo *</label>
-            <input type="text" id="input-medico-nombre" placeholder="Ej: Dra. González">
+            <input type="text" id="input-medico-nombre" placeholder="Ej: Dr. Alejandro Ramos">
           </div>
           <div class="form-group">
             <label for="input-medico-especialidad">Especialidad</label>
             <input type="text" id="input-medico-especialidad" placeholder="Ej: Ortodoncia">
+          </div>
+          <div class="form-group">
+            <label for="input-medico-consultorio">Gabinete / Consultorio (1 a 6)</label>
+            <input type="number" id="input-medico-consultorio" min="1" max="6" value="1">
+          </div>
+          <div class="form-group">
+            <label for="input-medico-dias">Días de atención</label>
+            <input type="text" id="input-medico-dias" placeholder="Ej: Lunes a Viernes" value="Lunes a Viernes">
+          </div>
+          <div class="form-group">
+            <label for="input-medico-hora-inicio">Hora inicio</label>
+            <input type="time" id="input-medico-hora-inicio" value="08:30">
+          </div>
+          <div class="form-group">
+            <label for="input-medico-hora-fin">Hora fin</label>
+            <input type="time" id="input-medico-hora-fin" value="20:30">
           </div>
         </div>
         <div class="form-actions">
@@ -379,7 +399,7 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Nombre</th><th>Especialidad</th><th>Consultorio</th><th>Horario</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Especialidad</th><th>Consultorio</th><th>Días de atención</th><th>Horario</th><th>Acciones</th></tr></thead>
             <tbody id="tbody-doctores"></tbody>
           </table>
         </div>
@@ -655,6 +675,47 @@
       <div class="modal-actions" style="margin-top:var(--sp-5)">
         <button type="button" class="btn btn-secondary" id="btn-cerrar-nuevo-paciente">Cancelar</button>
         <button type="submit" class="btn btn-primary" id="btn-guardar-nuevo-paciente">Guardar Paciente</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Modal: Alta Nuevo Doctor ── -->
+<div class="modal-overlay" id="modal-nuevo-doctor">
+  <div class="modal" style="max-width:540px">
+    <h2 class="modal-title">Agregar Nuevo Doctor</h2>
+    <p style="font-size:12.5px;color:var(--color-text-muted);margin-bottom:var(--sp-4)">Registra un nuevo profesional con su especialidad, consultorio, días y horarios de atención.</p>
+    <div id="alert-nuevo-doctor" class="alert"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span class="alert-text"></span></div>
+    <form id="form-nuevo-doctor" autocomplete="off">
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="modal-doc-nombre">Nombre Completo *</label>
+          <input type="text" id="modal-doc-nombre" placeholder="Ej: Dr. Alejandro Ramos" required>
+        </div>
+        <div class="form-group">
+          <label for="modal-doc-especialidad">Especialidad</label>
+          <input type="text" id="modal-doc-especialidad" placeholder="Ej: Ortodoncia">
+        </div>
+        <div class="form-group">
+          <label for="modal-doc-consultorio">Gabinete / Consultorio (1 a 6)</label>
+          <input type="number" id="modal-doc-consultorio" min="1" max="6" value="1">
+        </div>
+        <div class="form-group full-width">
+          <label for="modal-doc-dias">Días de Atención</label>
+          <input type="text" id="modal-doc-dias" placeholder="Lunes a Viernes o Lun, Mié, Vie" value="Lunes a Viernes">
+        </div>
+        <div class="form-group">
+          <label for="modal-doc-hora-inicio">Hora Inicio</label>
+          <input type="time" id="modal-doc-hora-inicio" value="08:30">
+        </div>
+        <div class="form-group">
+          <label for="modal-doc-hora-fin">Hora Fin</label>
+          <input type="time" id="modal-doc-hora-fin" value="20:30">
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:var(--sp-5)">
+        <button type="button" class="btn btn-secondary" id="btn-cerrar-nuevo-doctor">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-guardar-nuevo-doctor">Agregar Doctor</button>
       </div>
     </form>
   </div>

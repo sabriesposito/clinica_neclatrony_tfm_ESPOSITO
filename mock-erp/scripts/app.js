@@ -901,7 +901,7 @@ function renderDoctores() {
   setEl("doctores-count", `${medicos.length} doctor${medicos.length !== 1 ? "es" : ""}`);
 
   if (medicos.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--color-text-muted)">No hay doctores registrados</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--color-text-muted)">No hay doctores registrados</td></tr>`;
     return;
   }
 
@@ -910,6 +910,7 @@ function renderDoctores() {
       <td class="td-primary">${m.nombre}</td>
       <td>${m.especialidad || "—"}</td>
       <td>Gabinete ${m.consultorio || m.consultorio_asignado || 1}</td>
+      <td><span class="badge badge-secondary" style="font-weight:500">${m.dias || "Lunes a Viernes"}</span></td>
       <td>${m.horario_inicio ? m.horario_inicio.substring(0, 5) : '08:30'} - ${m.horario_fin ? m.horario_fin.substring(0, 5) : '20:30'}</td>
       <td>
         <div class="td-actions">
@@ -920,40 +921,154 @@ function renderDoctores() {
     </tr>`).join("");
 }
 
-function setupDoctoresForm() {
-  document.getElementById("btn-agregar-medico")?.addEventListener("click", () => {
-    const nombre = document.getElementById("input-medico-nombre").value.trim();
-    const especialidad = document.getElementById("input-medico-especialidad").value.trim();
+async function guardarNuevoDoctor({ nombre, especialidad, consultorio, dias, horaInicio, horaFin, alertId = "alert-doctores" }) {
+  if (!nombre) {
+    showAlert(alertId, "error", "El nombre es obligatorio.");
+    return false;
+  }
 
-    if (!nombre) {
-      showAlert("alert-doctores", "error", "El nombre es obligatorio.");
-      return;
-    }
+  const medicos = getMedicos();
+  if (medicos.find(m => m.nombre.toLowerCase() === nombre.toLowerCase())) {
+    showAlert(alertId, "error", "Ya existe un doctor con ese nombre.");
+    return false;
+  }
 
-    const medicos = getMedicos();
-    if (medicos.find(m => m.nombre.toLowerCase() === nombre.toLowerCase())) {
-      showAlert("alert-doctores", "error", "Ya existe un doctor con ese nombre.");
-      return;
-    }
+  const hInicio = (horaInicio || "08:30").substring(0, 5) + ":00";
+  const hFin = (horaFin || "20:30").substring(0, 5) + ":00";
+  const consultorioNum = parseInt(consultorio || "1", 10) || 1;
+  const diasTexto = dias || "Lunes a Viernes";
 
-    medicos.push({ id: generateId("M"), nombre, especialidad, consultorio: 1, horario_inicio: "08:30:00", horario_fin: "20:30:00" });
-    saveMedicos(medicos);
-    document.getElementById("input-medico-nombre").value = "";
-    document.getElementById("input-medico-especialidad").value = "";
-    renderDoctores();
-    populateMedicosSelect();
-    populateAgendaDoctorFilter();
-    showAlert("alert-doctores", "success", `${nombre} agregado correctamente.`);
-  });
+  const nuevoDoc = {
+    id: generateId("M"),
+    nombre,
+    especialidad: especialidad || "Odontología General",
+    consultorio: consultorioNum,
+    dias: diasTexto,
+    horario_inicio: hInicio,
+    horario_fin: hFin
+  };
+
+  medicos.push(nuevoDoc);
+  saveMedicos(medicos);
+  renderDoctores();
+  populateMedicosSelect();
+  populateAgendaDoctorFilter();
+  showAlert(alertId, "success", `${nombre} agregado correctamente.`);
+
+  // Sincronizar inserción con Supabase
+  insertDoctorToSupabase(nuevoDoc);
+  return true;
 }
 
-window.eliminarMedico = function(medicoId) {
+function setupDoctoresForm() {
+  // 1. Formulario en tarjeta dentro de la página
+  document.getElementById("btn-agregar-medico")?.addEventListener("click", async () => {
+    const nombre = document.getElementById("input-medico-nombre").value.trim();
+    const especialidad = document.getElementById("input-medico-especialidad").value.trim();
+    const consultorio = document.getElementById("input-medico-consultorio")?.value || "1";
+    const dias = document.getElementById("input-medico-dias")?.value.trim() || "Lunes a Viernes";
+    const horaInicio = document.getElementById("input-medico-hora-inicio")?.value || "08:30";
+    const horaFin = document.getElementById("input-medico-hora-fin")?.value || "20:30";
+
+    const ok = await guardarNuevoDoctor({
+      nombre,
+      especialidad,
+      consultorio,
+      dias,
+      horaInicio,
+      horaFin,
+      alertId: "alert-doctores"
+    });
+
+    if (ok) {
+      document.getElementById("input-medico-nombre").value = "";
+      document.getElementById("input-medico-especialidad").value = "";
+      if (document.getElementById("input-medico-consultorio")) document.getElementById("input-medico-consultorio").value = "1";
+      if (document.getElementById("input-medico-dias")) document.getElementById("input-medico-dias").value = "Lunes a Viernes";
+      if (document.getElementById("input-medico-hora-inicio")) document.getElementById("input-medico-hora-inicio").value = "08:30";
+      if (document.getElementById("input-medico-hora-fin")) document.getElementById("input-medico-hora-fin").value = "20:30";
+    }
+  });
+
+  // 2. Modal Nuevo Doctor (+ Nuevo Doctor en encabezado)
+  const btnAbrirModal = document.getElementById("btn-abrir-nuevo-doctor");
+  const modalNuevo = document.getElementById("modal-nuevo-doctor");
+  const btnCerrarModal = document.getElementById("btn-cerrar-nuevo-doctor");
+  const formModal = document.getElementById("form-nuevo-doctor");
+
+  if (btnAbrirModal && modalNuevo) {
+    btnAbrirModal.addEventListener("click", () => {
+      hideAlert("alert-nuevo-doctor");
+      formModal?.reset();
+      if (document.getElementById("modal-doc-consultorio")) document.getElementById("modal-doc-consultorio").value = "1";
+      if (document.getElementById("modal-doc-dias")) document.getElementById("modal-doc-dias").value = "Lunes a Viernes";
+      if (document.getElementById("modal-doc-hora-inicio")) document.getElementById("modal-doc-hora-inicio").value = "08:30";
+      if (document.getElementById("modal-doc-hora-fin")) document.getElementById("modal-doc-hora-fin").value = "20:30";
+      modalNuevo.classList.add("open");
+    });
+  }
+
+  if (btnCerrarModal && modalNuevo) {
+    btnCerrarModal.addEventListener("click", () => modalNuevo.classList.remove("open"));
+  }
+
+  if (formModal && modalNuevo) {
+    formModal.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("modal-doc-nombre").value.trim();
+      const especialidad = document.getElementById("modal-doc-especialidad").value.trim();
+      const consultorio = document.getElementById("modal-doc-consultorio")?.value || "1";
+      const dias = document.getElementById("modal-doc-dias")?.value.trim() || "Lunes a Viernes";
+      const horaInicio = document.getElementById("modal-doc-hora-inicio")?.value || "08:30";
+      const horaFin = document.getElementById("modal-doc-hora-fin")?.value || "20:30";
+
+      const ok = await guardarNuevoDoctor({
+        nombre,
+        especialidad,
+        consultorio,
+        dias,
+        horaInicio,
+        horaFin,
+        alertId: "alert-nuevo-doctor"
+      });
+
+      if (ok) {
+        showToast(`${nombre} agregado con éxito.`, "success");
+        setTimeout(() => {
+          modalNuevo.classList.remove("open");
+        }, 500);
+      }
+    });
+  }
+}
+
+window.eliminarMedico = async function(medicoId) {
+  const medico = getMedicos().find(m => m.id === medicoId);
   const medicos = getMedicos().filter(m => m.id !== medicoId);
   saveMedicos(medicos);
   renderDoctores();
   populateMedicosSelect();
   populateAgendaDoctorFilter();
   showToast("Doctor eliminado.", "error");
+
+  if (medico) {
+    try {
+      const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+      const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+      const cleanName = medico.nombre.replace(/^(Dr\.|Dra\.)\s*/, '');
+      await fetch(`${SUPABASE_URL}/rest/v1/clinica_doctores?nombre_completo=ilike.*${encodeURIComponent(cleanName)}*`, {
+        method: "PATCH",
+        headers: {
+          "apikey": SERVICE_KEY,
+          "Authorization": "Bearer " + SERVICE_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ activo: false })
+      });
+    } catch(e) {
+      console.warn("Error desactivando doctor en Supabase:", e);
+    }
+  }
 };
 
 // ── Modal: Alta Nuevo Paciente ───────────────────────────────────────────────
@@ -1130,7 +1245,7 @@ window.abrirEditarDoctor = function(id) {
   document.getElementById("modal-editar-doctor")?.classList.add("open");
 };
 
-async function syncDoctorToSupabase(doc) {
+async function insertDoctorToSupabase(doc) {
   const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
   const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
   const headers = {
@@ -1141,18 +1256,57 @@ async function syncDoctorToSupabase(doc) {
 
   try {
     const payload = {
-      especialidad: doc.especialidad,
-      consultorio_asignado: doc.consultorio,
-      horario_inicio: (doc.horario_inicio || "08:30") + ":00",
-      horario_fin: (doc.horario_fin || "20:30") + ":00"
+      nombre_completo: doc.nombre,
+      numero_colegiado: "COL-" + Math.floor(1000 + Math.random() * 9000),
+      especialidad: doc.especialidad || "Odontología General",
+      consultorio_asignado: doc.consultorio || 1,
+      horario_inicio: (doc.horario_inicio || "08:30:00").substring(0, 5) + ":00",
+      horario_fin: (doc.horario_fin || "20:30:00").substring(0, 5) + ":00",
+      activo: true
     };
 
-    const url = `${SUPABASE_URL}/rest/v1/clinica_doctores?nombre_completo=ilike.*${encodeURIComponent(doc.nombre.replace(/^(Dr\.|Dra\.)\s*/, ''))}*`;
-    await fetch(url, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/clinica_doctores`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      console.log("[Sync Doctor -> Supabase] Doctor insertado correctamente en Supabase:", doc.nombre);
+    }
+  } catch(e) {
+    console.warn("[Sync Doctor -> Supabase] Error insertando doctor:", e);
+  }
+}
+
+async function syncDoctorToSupabase(doc) {
+  const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+  const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+  const headers = {
+    "apikey": SERVICE_KEY,
+    "Authorization": "Bearer " + SERVICE_KEY,
+    "Content-Type": "application/json",
+    "Prefer": "return=representation"
+  };
+
+  try {
+    const payload = {
+      especialidad: doc.especialidad,
+      consultorio_asignado: doc.consultorio,
+      horario_inicio: (doc.horario_inicio || "08:30").substring(0, 5) + ":00",
+      horario_fin: (doc.horario_fin || "20:30").substring(0, 5) + ":00"
+    };
+
+    const cleanName = doc.nombre.replace(/^(Dr\.|Dra\.)\s*/, '');
+    const url = `${SUPABASE_URL}/rest/v1/clinica_doctores?nombre_completo=ilike.*${encodeURIComponent(cleanName)}*`;
+    const res = await fetch(url, {
       method: "PATCH",
       headers,
       body: JSON.stringify(payload)
     });
+    const updated = await res.json();
+    if (!Array.isArray(updated) || updated.length === 0) {
+      await insertDoctorToSupabase(doc);
+    }
   } catch(e) {
     console.warn("[Sync Doctor -> Supabase] Error:", e);
   }
