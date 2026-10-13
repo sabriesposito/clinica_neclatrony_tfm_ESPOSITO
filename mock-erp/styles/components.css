@@ -201,6 +201,12 @@
   color: var(--color-success);
 }
 
+.badge-programada {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
 .badge-pendiente {
   background: var(--color-warning-tint);
   color: var(--color-warning);
@@ -812,6 +818,12 @@ textarea {
   background: #F0FDF4;
   border: 1px solid #BBF7D0;
   border-left: 3px solid #10B981;
+}
+
+.slot-card.programada {
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  border-left: 3px solid #0284C7;
 }
 
 .slot-card.pendiente {

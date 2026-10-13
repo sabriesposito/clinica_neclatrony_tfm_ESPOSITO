@@ -238,15 +238,6 @@ function renderAgendaView() {
     return d.toISOString().split("T")[0];
   });
 
-  // Normalizar estados ("programada", "confirmada" -> confirmada)
-  const normalizarEstado = (estado) => {
-    const e = (estado || "").toLowerCase().trim();
-    if (e === "programada" || e === "confirmada") return "confirmada";
-    if (e === "pendiente") return "pendiente";
-    if (e === "cancelada") return "cancelada";
-    return "confirmada";
-  };
-
   // Calculate KPIs for the 3-day window
   const windowCitas = allCitas.filter(c => {
     const matchDate = dates.includes(c.fecha);
@@ -255,9 +246,12 @@ function renderAgendaView() {
   });
 
   const totalCitas = windowCitas.length;
-  const confirmadas = windowCitas.filter(c => normalizarEstado(c.estado) === "confirmada").length;
-  const pendientes = windowCitas.filter(c => normalizarEstado(c.estado) === "pendiente").length;
-  const canceladas = windowCitas.filter(c => normalizarEstado(c.estado) === "cancelada").length;
+  const confirmadas = windowCitas.filter(c => (c.estado || "").toLowerCase().trim() === "confirmada").length;
+  const pendientes = windowCitas.filter(c => {
+    const s = (c.estado || "").toLowerCase().trim();
+    return s === "pendiente" || s === "programada";
+  }).length;
+  const canceladas = windowCitas.filter(c => (c.estado || "").toLowerCase().trim() === "cancelada").length;
 
   setEl("kpi-total-citas", totalCitas);
   setEl("kpi-confirmadas", confirmadas);
@@ -314,19 +308,23 @@ function renderAgendaView() {
       HORAS.forEach(hora => {
         const cita = dayCitas.find(c => c.hora === hora);
         if (cita) {
-          const normEstado = normalizarEstado(cita.estado);
-          const estadoLabel = capitalize(cita.estado || "Programada");
+          const rawEstado = (cita.estado || "").toLowerCase().trim();
+          const isConfirmada = rawEstado === "confirmada";
+          const isCancelada = rawEstado === "cancelada";
+          const normClass = isConfirmada ? "confirmada" : (isCancelada ? "cancelada" : (rawEstado === "programada" ? "programada" : "pendiente"));
+          const estadoLabel = rawEstado === "programada" ? "Programada" : (isConfirmada ? "Confirmada" : (isCancelada ? "Cancelada" : "Pendiente"));
+
           colHtml += `
-            <div class="slot-card ${normEstado}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
+            <div class="slot-card ${normClass}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
               <div class="slot-row-main">
                 <div class="slot-time-patient">
                   <span class="slot-time-badge">${hora} - ${calcularFinTurno(hora, cita.tratamiento)}</span>
                   <span class="slot-patient-name" onclick="buscarYVerPaciente('${cita.pacienteNombre}')">${cita.pacienteNombre}</span>
                 </div>
                 <div class="slot-row-actions">
-                  <span class="badge badge-${normEstado}">${estadoLabel}</span>
-                  ${normEstado === "pendiente" ? `<button class="btn-slot-action btn-slot-confirm" onclick="confirmarCita('${cita.id}')" title="Confirmar">✓</button>` : ''}
-                  ${normEstado !== "cancelada" ? `<button class="btn-slot-action btn-slot-cancel" onclick="cancelarCita('${cita.id}')" title="Cancelar cita">✕</button>` : ''}
+                  <span class="badge badge-${normClass}">${estadoLabel}</span>
+                  ${(!isConfirmada && !isCancelada) ? `<button class="btn-slot-action btn-slot-confirm" onclick="confirmarCita('${cita.id}')" title="Confirmar asistencia">✓</button>` : ''}
+                  ${!isCancelada ? `<button class="btn-slot-action btn-slot-cancel" onclick="cancelarCita('${cita.id}')" title="Cancelar cita">✕</button>` : ''}
                 </div>
               </div>
               <div class="slot-row-sub">
@@ -605,29 +603,68 @@ document.addEventListener("click", (e) => {
 });
 
 // ── Confirmar / Cancelar citas ────────────────────────────────────────────────
-window.confirmarCita = function(citaId) {
+window.confirmarCita = async function(citaId) {
   const citas = getCitas();
   const cita = citas.find(c => c.id === citaId);
   if (!cita) return;
   cita.estado = "confirmada";
   saveCitas(citas);
-  showToast(`Cita de ${cita.pacienteNombre} confirmada.`, "success");
+  showToast(`Cita de ${cita.pacienteNombre} confirmada y actualizada en Supabase.`, "success");
   renderAgendaView();
   renderDashboard();
+
+  await updateCitaEstadoEnSupabase(citaId, "CONFIRMADA");
 };
 
 window.cancelarCita = function(citaId) {
   document.getElementById("modal-cancelar").classList.add("open");
-  document.getElementById("btn-confirmar-cancelacion").onclick = () => {
+  document.getElementById("btn-confirmar-cancelacion").onclick = async () => {
     const citas = getCitas();
     const cita = citas.find(c => c.id === citaId);
-    if (cita) { cita.estado = "cancelada"; saveCitas(citas); }
+    if (cita) {
+      cita.estado = "cancelada";
+      saveCitas(citas);
+    }
     document.getElementById("modal-cancelar").classList.remove("open");
-    showToast("Cita cancelada.", "error");
+    showToast("Cita cancelada y actualizada en Supabase.", "error");
     renderAgendaView();
     renderDashboard();
+
+    await updateCitaEstadoEnSupabase(citaId, "CANCELADA");
   };
 };
+
+async function updateCitaEstadoEnSupabase(citaId, nuevoEstado) {
+  const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+  const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+  const headers = {
+    "apikey": SERVICE_KEY,
+    "Authorization": "Bearer " + SERVICE_KEY,
+    "Content-Type": "application/json"
+  };
+
+  try {
+    // Determinar si es UUID o erp_cita_id (como NEC-8503)
+    let url;
+    if (citaId.includes("-") && citaId.length > 20) {
+      url = `${SUPABASE_URL}/rest/v1/clinica_citas?id=eq.${citaId}`;
+    } else {
+      url = `${SUPABASE_URL}/rest/v1/clinica_citas?erp_cita_id=eq.${citaId}`;
+    }
+
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        estado: nuevoEstado,
+        fecha_actualizacion: new Date().toISOString()
+      })
+    });
+    console.log(`[Supabase] Estado de cita ${citaId} actualizado a ${nuevoEstado} (status: ${res.status})`);
+  } catch(e) {
+    console.warn("[Supabase] Error actualizando estado:", e);
+  }
+}
 
 document.addEventListener("click", (e) => {
   if (e.target.id === "modal-cancelar" || e.target.id === "btn-cerrar-cancelar") {
