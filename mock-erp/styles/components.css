@@ -666,10 +666,10 @@ textarea {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--sp-3);
-  margin-bottom: var(--sp-5);
+  margin-bottom: var(--sp-4);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .agenda-kpis-mini {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -679,25 +679,65 @@ textarea {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--sp-3) var(--sp-4);
+  padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   box-shadow: var(--shadow-xs);
+  transition: all 0.15s ease;
 }
 
-.kpi-mini-val {
-  font-size: 22px;
-  font-weight: var(--fw-extra);
-  color: var(--color-primary);
-  line-height: 1;
+.kpi-mini-card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-border-strong);
+}
+
+.kpi-mini-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .kpi-mini-lbl {
-  font-size: 11.5px;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--color-text-muted);
-  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
+
+.kpi-mini-val {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-text);
+}
+
+.kpi-mini-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpi-mini-card.total { border-left: 3px solid var(--color-primary); }
+.kpi-mini-card.total .kpi-mini-icon { background: var(--color-primary-tint); color: var(--color-primary); }
+.kpi-mini-card.total .kpi-mini-val { color: var(--color-primary); }
+
+.kpi-mini-card.confirmada { border-left: 3px solid #10B981; }
+.kpi-mini-card.confirmada .kpi-mini-icon { background: #ECFDF5; color: #059669; }
+.kpi-mini-card.confirmada .kpi-mini-val { color: #059669; }
+
+.kpi-mini-card.pendiente { border-left: 3px solid #F59E0B; }
+.kpi-mini-card.pendiente .kpi-mini-icon { background: #FFFBEB; color: #D97706; }
+.kpi-mini-card.pendiente .kpi-mini-val { color: #D97706; }
+
+.kpi-mini-card.cancelada { border-left: 3px solid #EF4444; }
+.kpi-mini-card.cancelada .kpi-mini-icon { background: #FEF2F2; color: #DC2626; }
+.kpi-mini-card.cancelada .kpi-mini-val { color: #DC2626; }
 
 .agenda-3days-grid {
   display: grid;
@@ -742,65 +782,137 @@ textarea {
 }
 
 .agenda-day-slots {
-  padding: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
   display: flex;
   flex-direction: column;
-  gap: var(--sp-2);
-  max-height: 600px;
+  gap: 6px;
+  max-height: 620px;
   overflow-y: auto;
 }
 
+/* ── Cita Agendada Compacta ─────────────────────────────────────────────── */
 .slot-card {
   border-radius: var(--radius-sm);
-  padding: var(--sp-3);
+  padding: 6px 10px;
   border: 1px solid var(--color-border);
   background: #FAFAFA;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   transition: all 0.15s ease;
+  min-height: 44px;
+  justify-content: center;
 }
 
 .slot-card:hover {
   box-shadow: var(--shadow-xs);
 }
 
-.slot-card.booked {
-  background: var(--color-surface);
-  border-left: 3px solid var(--color-primary-mid);
+.slot-card.confirmada {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-left: 3px solid #10B981;
 }
 
-.slot-card.confirmada { border-left-color: var(--color-success); background: var(--color-success-tint); }
-.slot-card.pendiente  { border-left-color: var(--color-warning); background: var(--color-warning-tint); }
-.slot-card.cancelada  { border-left-color: var(--color-danger);  background: var(--color-danger-tint); }
+.slot-card.pendiente {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-left: 3px solid #F59E0B;
+}
 
-.slot-header {
+.slot-card.cancelada {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-left: 3px solid #EF4444;
+}
+
+.slot-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.slot-time-patient {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.slot-time-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.slot-patient-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.slot-patient-name:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.slot-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.slot-row-sub {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.slot-time {
-  font-size: 11px;
-  font-weight: var(--fw-bold);
-  color: var(--color-text-medium);
-}
-
-.slot-patient {
-  font-size: 12.5px;
-  font-weight: var(--fw-semi);
-  color: var(--color-text);
-}
-
-.slot-detail {
-  font-size: 11px;
+.slot-sub-text {
+  font-size: 10.5px;
   color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.slot-actions {
-  display: flex;
-  gap: var(--sp-2);
-  margin-top: 4px;
+.btn-slot-action {
+  border: none;
+  background: transparent;
+  padding: 2px 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  line-height: 1;
+}
+
+.btn-slot-confirm {
+  background: #DCFCE7;
+  color: #15803D;
+}
+.btn-slot-confirm:hover {
+  background: #BBF7D0;
+}
+
+.btn-slot-cancel {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+.btn-slot-cancel:hover {
+  background: #FECACA;
 }
 
 .slot-empty-btn {

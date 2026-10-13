@@ -193,23 +193,46 @@
         </div>
       </div>
 
-      <!-- Barra de KPIs de turnos -->
-      <div class="agenda-kpi-bar" id="agenda-kpis">
-        <div class="agenda-kpi-pill">
-          <span class="kpi-label">Turnos en ventana:</span>
-          <span class="kpi-val" id="kpi-total-citas">0</span>
+      <!-- Indicadores de Turnos (KPIs) -->
+      <div class="agenda-kpis-mini" id="agenda-kpis">
+        <div class="kpi-mini-card total">
+          <div class="kpi-mini-info">
+            <span class="kpi-mini-lbl">Turnos en ventana</span>
+            <span class="kpi-mini-val" id="kpi-total-citas">0</span>
+          </div>
+          <div class="kpi-mini-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
         </div>
-        <div class="agenda-kpi-pill success">
-          <span class="kpi-label">Confirmados:</span>
-          <span class="kpi-val" id="kpi-confirmadas">0</span>
+
+        <div class="kpi-mini-card confirmada">
+          <div class="kpi-mini-info">
+            <span class="kpi-mini-lbl">Confirmados</span>
+            <span class="kpi-mini-val" id="kpi-confirmadas">0</span>
+          </div>
+          <div class="kpi-mini-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
         </div>
-        <div class="agenda-kpi-pill warning">
-          <span class="kpi-label">Pendientes:</span>
-          <span class="kpi-val" id="kpi-pendientes">0</span>
+
+        <div class="kpi-mini-card pendiente">
+          <div class="kpi-mini-info">
+            <span class="kpi-mini-lbl">Pendientes</span>
+            <span class="kpi-mini-val" id="kpi-pendientes">0</span>
+          </div>
+          <div class="kpi-mini-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
         </div>
-        <div class="agenda-kpi-pill danger">
-          <span class="kpi-label">Cancelados:</span>
-          <span class="kpi-val" id="kpi-canceladas">0</span>
+
+        <div class="kpi-mini-card cancelada">
+          <div class="kpi-mini-info">
+            <span class="kpi-mini-lbl">Cancelados</span>
+            <span class="kpi-mini-val" id="kpi-canceladas">0</span>
+          </div>
+          <div class="kpi-mini-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
         </div>
       </div>
 

@@ -238,6 +238,15 @@ function renderAgendaView() {
     return d.toISOString().split("T")[0];
   });
 
+  // Normalizar estados ("programada", "confirmada" -> confirmada)
+  const normalizarEstado = (estado) => {
+    const e = (estado || "").toLowerCase().trim();
+    if (e === "programada" || e === "confirmada") return "confirmada";
+    if (e === "pendiente") return "pendiente";
+    if (e === "cancelada") return "cancelada";
+    return "confirmada";
+  };
+
   // Calculate KPIs for the 3-day window
   const windowCitas = allCitas.filter(c => {
     const matchDate = dates.includes(c.fecha);
@@ -246,9 +255,9 @@ function renderAgendaView() {
   });
 
   const totalCitas = windowCitas.length;
-  const confirmadas = windowCitas.filter(c => c.estado === "confirmada" || c.estado === "PROGRAMADA").length;
-  const pendientes = windowCitas.filter(c => c.estado === "pendiente").length;
-  const canceladas = windowCitas.filter(c => c.estado === "cancelada").length;
+  const confirmadas = windowCitas.filter(c => normalizarEstado(c.estado) === "confirmada").length;
+  const pendientes = windowCitas.filter(c => normalizarEstado(c.estado) === "pendiente").length;
+  const canceladas = windowCitas.filter(c => normalizarEstado(c.estado) === "cancelada").length;
 
   setEl("kpi-total-citas", totalCitas);
   setEl("kpi-confirmadas", confirmadas);
@@ -305,18 +314,23 @@ function renderAgendaView() {
       HORAS.forEach(hora => {
         const cita = dayCitas.find(c => c.hora === hora);
         if (cita) {
-          const badgeClass = (cita.estado === "confirmada" || cita.estado === "PROGRAMADA") ? "confirmada" : (cita.estado === "pendiente" ? "pendiente" : "cancelada");
+          const normEstado = normalizarEstado(cita.estado);
+          const estadoLabel = capitalize(cita.estado || "Programada");
           colHtml += `
-            <div class="slot-card ${badgeClass}">
-              <div class="slot-header">
-                <span class="slot-time">${hora} - ${calcularFinTurno(hora, cita.tratamiento)}</span>
-                <span class="badge badge-${badgeClass}">${capitalize(cita.estado)}</span>
+            <div class="slot-card ${normEstado}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
+              <div class="slot-row-main">
+                <div class="slot-time-patient">
+                  <span class="slot-time-badge">${hora} - ${calcularFinTurno(hora, cita.tratamiento)}</span>
+                  <span class="slot-patient-name" onclick="buscarYVerPaciente('${cita.pacienteNombre}')">${cita.pacienteNombre}</span>
+                </div>
+                <div class="slot-row-actions">
+                  <span class="badge badge-${normEstado}">${estadoLabel}</span>
+                  ${normEstado === "pendiente" ? `<button class="btn-slot-action btn-slot-confirm" onclick="confirmarCita('${cita.id}')" title="Confirmar">✓</button>` : ''}
+                  ${normEstado !== "cancelada" ? `<button class="btn-slot-action btn-slot-cancel" onclick="cancelarCita('${cita.id}')" title="Cancelar cita">✕</button>` : ''}
+                </div>
               </div>
-              <div class="slot-patient" style="cursor:pointer" onclick="buscarYVerPaciente('${cita.pacienteNombre}')">${cita.pacienteNombre}</div>
-              <div class="slot-detail">${cita.tratamiento} · <strong>${cita.medico}</strong></div>
-              <div class="slot-actions">
-                ${(cita.estado === "pendiente") ? `<button class="btn btn-sm btn-success" style="padding:2px 8px;font-size:11px" onclick="confirmarCita('${cita.id}')">Confirmar</button>` : ''}
-                ${(cita.estado !== "cancelada") ? `<button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px" onclick="cancelarCita('${cita.id}')">Cancelar</button>` : ''}
+              <div class="slot-row-sub">
+                <span class="slot-sub-text">${cita.tratamiento} · <strong>${cita.medico}</strong></span>
               </div>
             </div>
           `;
