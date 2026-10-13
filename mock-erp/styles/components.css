@@ -640,3 +640,198 @@ textarea {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-text-subtle); }
+
+/* ── Multi-Day Agenda (3 Días) & Controles Interactivos ──────────────────── */
+.agenda-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--sp-4);
+  box-shadow: var(--shadow-xs);
+}
+
+.agenda-nav-group {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.agenda-kpis-mini {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+
+@media (max-width: 768px) {
+  .agenda-kpis-mini {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.kpi-mini-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-xs);
+}
+
+.kpi-mini-val {
+  font-size: 22px;
+  font-weight: var(--fw-extra);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.kpi-mini-lbl {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  font-weight: var(--fw-medium);
+}
+
+.agenda-3days-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-4);
+}
+
+@media (max-width: 950px) {
+  .agenda-3days-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.agenda-day-column {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-xs);
+}
+
+.agenda-day-header {
+  padding: var(--sp-3) var(--sp-4);
+  background: #F8FAFC;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.agenda-day-title {
+  font-size: 13.5px;
+  font-weight: var(--fw-bold);
+  color: var(--color-primary);
+}
+
+.agenda-day-date {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.agenda-day-slots {
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.slot-card {
+  border-radius: var(--radius-sm);
+  padding: var(--sp-3);
+  border: 1px solid var(--color-border);
+  background: #FAFAFA;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: all 0.15s ease;
+}
+
+.slot-card:hover {
+  box-shadow: var(--shadow-xs);
+}
+
+.slot-card.booked {
+  background: var(--color-surface);
+  border-left: 3px solid var(--color-primary-mid);
+}
+
+.slot-card.confirmada { border-left-color: var(--color-success); background: var(--color-success-tint); }
+.slot-card.pendiente  { border-left-color: var(--color-warning); background: var(--color-warning-tint); }
+.slot-card.cancelada  { border-left-color: var(--color-danger);  background: var(--color-danger-tint); }
+
+.slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.slot-time {
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  color: var(--color-text-medium);
+}
+
+.slot-patient {
+  font-size: 12.5px;
+  font-weight: var(--fw-semi);
+  color: var(--color-text);
+}
+
+.slot-detail {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.slot-actions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: 4px;
+}
+
+.slot-empty-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--color-border-strong);
+  background: #FCFDFE;
+  color: var(--color-text-subtle);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.slot-empty-btn:hover {
+  border-color: var(--color-primary-mid);
+  color: var(--color-primary-mid);
+  background: var(--color-primary-tint);
+}
+
+.banner-bloqueado {
+  padding: var(--sp-4);
+  background: #FEF2F2;
+  border: 1px dashed #F87171;
+  border-radius: var(--radius-md);
+  color: #B91C1C;
+  font-size: 12px;
+  text-align: center;
+  font-weight: var(--fw-semi);
+  margin-bottom: var(--sp-2);
+}

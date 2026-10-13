@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initData();
   renderTopbarDate();
   renderDashboard();
+  setupAgendaControls();
   renderAgenda();
   populateTratamientos();
   populateHorarios();
@@ -13,8 +14,12 @@ document.addEventListener("DOMContentLoaded", () => {
   setupNavigation();
   setupNuevaCitaForm();
   setupBusquedaPacientes();
-  setupAgendaDatePicker();
   setupDoctoresForm();
+  setupNuevoPacienteModal();
+  setupEditarDoctorModal();
+  setupConfiguracionPage();
+  fetchPacientesFromSupabase();
+  fetchDoctoresFromSupabase();
   fetchCitasFromSupabase();
 
   const badge = document.getElementById("badge-citas-hoy");
@@ -66,6 +71,8 @@ function navigateTo(pageId) {
   if (pageId === "dashboard") renderDashboard();
   if (pageId === "agenda") renderAgendaView();
   if (pageId === "pacientes") renderPacientes();
+  if (pageId === "doctores") renderDoctores();
+  if (pageId === "configuracion") renderConfiguracionPage();
 }
 
 // ── Topbar Date ─────────────────────────────────────────────────────────────
@@ -148,56 +155,211 @@ function renderDashboard() {
     </div>`;
 }
 
-// ── Agenda ───────────────────────────────────────────────────────────────────
-function setupAgendaDatePicker() {
+// ── Agenda Interactiva Multi-Día (3 Días) ──────────────────────────────────
+let currentAgendaDate = new Date().toISOString().split("T")[0];
+
+function setupAgendaControls() {
   const picker = document.getElementById("agenda-fecha");
-  if (!picker) return;
-  picker.value = new Date().toISOString().split("T")[0];
-  picker.addEventListener("change", renderAgendaView);
+  if (picker) {
+    picker.value = currentAgendaDate;
+    picker.addEventListener("change", (e) => {
+      if (e.target.value) {
+        currentAgendaDate = e.target.value;
+        renderAgendaView();
+      }
+    });
+  }
+
+  const btnHoy = document.getElementById("btn-agenda-hoy");
+  if (btnHoy) {
+    btnHoy.addEventListener("click", () => {
+      currentAgendaDate = new Date().toISOString().split("T")[0];
+      if (picker) picker.value = currentAgendaDate;
+      renderAgendaView();
+    });
+  }
+
+  const btnPrev = document.getElementById("btn-agenda-prev");
+  if (btnPrev) {
+    btnPrev.addEventListener("click", () => {
+      const d = new Date(currentAgendaDate + "T12:00:00Z");
+      d.setDate(d.getDate() - 1);
+      currentAgendaDate = d.toISOString().split("T")[0];
+      if (picker) picker.value = currentAgendaDate;
+      renderAgendaView();
+    });
+  }
+
+  const btnNext = document.getElementById("btn-agenda-next");
+  if (btnNext) {
+    btnNext.addEventListener("click", () => {
+      const d = new Date(currentAgendaDate + "T12:00:00Z");
+      d.setDate(d.getDate() + 1);
+      currentAgendaDate = d.toISOString().split("T")[0];
+      if (picker) picker.value = currentAgendaDate;
+      renderAgendaView();
+    });
+  }
+
+  const selDoctor = document.getElementById("agenda-filtro-doctor");
+  if (selDoctor) {
+    selDoctor.addEventListener("change", () => {
+      renderAgendaView();
+    });
+  }
+
+  populateAgendaDoctorFilter();
+}
+
+function populateAgendaDoctorFilter() {
+  const sel = document.getElementById("agenda-filtro-doctor");
+  if (!sel) return;
+  const currentVal = sel.value;
+  const medicos = getMedicos();
+  sel.innerHTML = '<option value="">Todos los doctores</option>' +
+    medicos.map(m => `<option value="${m.nombre}">${m.nombre}</option>`).join("");
+  if (currentVal) sel.value = currentVal;
 }
 
 function renderAgenda() { renderAgendaView(); }
 
 function renderAgendaView() {
-  const picker = document.getElementById("agenda-fecha");
-  const fecha = picker ? picker.value : new Date().toISOString().split("T")[0];
-  const citas = getCitas().filter(c => c.fecha === fecha);
-  const container = document.getElementById("agenda-view");
+  const container = document.getElementById("agenda-3days-grid");
   if (!container) return;
 
-  const HORAS = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","16:00","16:30","17:00","17:30","18:00","18:30"];
+  const doctorFiltro = (document.getElementById("agenda-filtro-doctor")?.value || "").trim().toLowerCase();
+  const allCitas = getCitas();
 
-  container.innerHTML = "";
-  HORAS.forEach(hora => {
-    const cita = citas.find(c => c.hora === hora);
-    const row = document.createElement("div");
-    row.className = "agenda-row";
-
-    if (cita) {
-      row.innerHTML = `
-        <div class="agenda-time">${hora}</div>
-        <div class="agenda-event ${cita.estado}" style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div class="agenda-event-name">${cita.pacienteNombre}</div>
-            <div class="agenda-event-detail">${cita.tratamiento} · ${cita.medico}</div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <span class="badge badge-${cita.estado}">${capitalize(cita.estado)}</span>
-            ${cita.estado === "pendiente" ? `<button class="btn btn-sm btn-success" id="btn-confirmar-${cita.id}" onclick="confirmarCita('${cita.id}')">Confirmar</button>` : ""}
-            ${cita.estado !== "cancelada" && cita.estado !== "completada" ? `<button class="btn btn-sm btn-danger" id="btn-cancelar-${cita.id}" onclick="cancelarCita('${cita.id}')">Cancelar</button>` : ""}
-          </div>
-        </div>`;
-    } else {
-      row.innerHTML = `
-        <div class="agenda-time">${hora}</div>
-        <div class="agenda-empty" id="slot-${hora.replace(":","")}" data-hora="${hora}" data-fecha="${fecha}">Disponible — <span style="color:var(--color-primary-mid);cursor:pointer;font-weight:600" onclick="irANuevaCita('${fecha}','${hora}')">+ Nueva cita</span></div>`;
-    }
-    container.appendChild(row);
+  // 3-day dates array
+  const baseD = new Date(currentAgendaDate + "T12:00:00Z");
+  const dates = [0, 1, 2].map(offset => {
+    const d = new Date(baseD);
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().split("T")[0];
   });
 
-  // Resumen del día
-  setEl("agenda-resumen", `${citas.filter(c=>c.estado!=="cancelada").length} citas · ${HORAS.length - citas.filter(c=>c.estado!=="cancelada").length} slots libres`);
+  // Calculate KPIs for the 3-day window
+  const windowCitas = allCitas.filter(c => {
+    const matchDate = dates.includes(c.fecha);
+    const matchDoc = !doctorFiltro || (c.medico && c.medico.toLowerCase().includes(doctorFiltro));
+    return matchDate && matchDoc;
+  });
+
+  const totalCitas = windowCitas.length;
+  const confirmadas = windowCitas.filter(c => c.estado === "confirmada" || c.estado === "PROGRAMADA").length;
+  const pendientes = windowCitas.filter(c => c.estado === "pendiente").length;
+  const canceladas = windowCitas.filter(c => c.estado === "cancelada").length;
+
+  setEl("kpi-total-citas", totalCitas);
+  setEl("kpi-confirmadas", confirmadas);
+  setEl("kpi-pendientes", pendientes);
+  setEl("kpi-canceladas", canceladas);
+  setEl("agenda-resumen", `Mostrando ${totalCitas} citas entre ${formatFecha(dates[0])} y ${formatFecha(dates[2])}`);
+
+  const HORAS = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","16:00","16:30","17:00","17:30","18:00","18:30"];
+  const hoyStr = new Date().toISOString().split("T")[0];
+  const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+  container.innerHTML = "";
+
+  dates.forEach((dateStr, idx) => {
+    const dObj = new Date(dateStr + "T12:00:00Z");
+    const dayName = diasSemana[dObj.getUTCDay()];
+    const dayNum = dObj.getUTCDate();
+    const monthName = meses[dObj.getUTCMonth()];
+    const isToday = (dateStr === hoyStr);
+    const isTomorrow = (idx === 1 && dates[0] === hoyStr);
+
+    let tag = "";
+    if (isToday) tag = " (Hoy)";
+    else if (isTomorrow) tag = " (Mañana)";
+
+    const dayCitas = windowCitas.filter(c => c.fecha === dateStr);
+    const isBloqueada = isClinicaBloqueada(dateStr);
+
+    const col = document.createElement("div");
+    col.className = "agenda-day-column";
+
+    let colHtml = `
+      <div class="agenda-day-header">
+        <div>
+          <div class="agenda-day-title">${dayName}${tag}</div>
+          <div class="agenda-day-date">${dayNum} ${monthName} ${dObj.getUTCFullYear()}</div>
+        </div>
+        <span class="badge ${dayCitas.length > 0 ? 'badge-confirmada' : 'badge-completada'}" style="font-size:11px">
+          ${dayCitas.length} cita${dayCitas.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+      <div class="agenda-day-slots">
+    `;
+
+    if (isBloqueada) {
+      colHtml += `
+        <div class="banner-bloqueado">
+          🔒 <strong>Clínica Cerrada</strong><br>
+          No hay turnos disponibles por feriado o mantenimiento programado.
+        </div>
+      `;
+    } else {
+      HORAS.forEach(hora => {
+        const cita = dayCitas.find(c => c.hora === hora);
+        if (cita) {
+          const badgeClass = (cita.estado === "confirmada" || cita.estado === "PROGRAMADA") ? "confirmada" : (cita.estado === "pendiente" ? "pendiente" : "cancelada");
+          colHtml += `
+            <div class="slot-card ${badgeClass}">
+              <div class="slot-header">
+                <span class="slot-time">${hora} - ${calcularFinTurno(hora, cita.tratamiento)}</span>
+                <span class="badge badge-${badgeClass}">${capitalize(cita.estado)}</span>
+              </div>
+              <div class="slot-patient" style="cursor:pointer" onclick="buscarYVerPaciente('${cita.pacienteNombre}')">${cita.pacienteNombre}</div>
+              <div class="slot-detail">${cita.tratamiento} · <strong>${cita.medico}</strong></div>
+              <div class="slot-actions">
+                ${(cita.estado === "pendiente") ? `<button class="btn btn-sm btn-success" style="padding:2px 8px;font-size:11px" onclick="confirmarCita('${cita.id}')">Confirmar</button>` : ''}
+                ${(cita.estado !== "cancelada") ? `<button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px" onclick="cancelarCita('${cita.id}')">Cancelar</button>` : ''}
+              </div>
+            </div>
+          `;
+        } else {
+          colHtml += `
+            <button class="slot-empty-btn" onclick="irANuevaCita('${dateStr}','${hora}')">
+              <span>+ ${hora}</span>
+              <span style="font-weight:600">Disponible</span>
+            </button>
+          `;
+        }
+      });
+    }
+
+    colHtml += `</div>`;
+    col.innerHTML = colHtml;
+    container.appendChild(col);
+  });
 }
+
+function calcularFinTurno(horaStr, especialidad) {
+  if (!horaStr) return "10:30";
+  const cfg = getConfiguracion();
+  let dur = 30;
+  if (cfg.duraciones) {
+    if (especialidad && cfg.duraciones[especialidad]) dur = cfg.duraciones[especialidad];
+    else if (especialidad && especialidad.toLowerCase().includes("cirug")) dur = cfg.duraciones["Cirugía Oral e Implantes"] || 60;
+    else if (especialidad && especialidad.toLowerCase().includes("implante")) dur = cfg.duraciones["Cirugía Oral e Implantes"] || 60;
+    else if (especialidad && especialidad.toLowerCase().includes("ortod")) dur = cfg.duraciones["Ortodoncia"] || 30;
+    else if (especialidad && especialidad.toLowerCase().includes("endo")) dur = cfg.duraciones["Endodoncia / Periodoncia"] || 45;
+  }
+  const [h, m] = horaStr.split(":").map(Number);
+  const totalM = h * 60 + m + dur;
+  const finH = String(Math.floor(totalM / 60)).padStart(2, "0");
+  const finM = String(totalM % 60).padStart(2, "0");
+  return `${finH}:${finM}`;
+}
+
+window.buscarYVerPaciente = function(nombre) {
+  const p = getPacientes().find(x => x.nombre.toLowerCase().includes(nombre.toLowerCase()));
+  if (p) verPaciente(p.id);
+  else showToast(`Paciente: ${nombre}`, "info");
+};
 
 function irANuevaCita(fecha, hora) {
   navigateTo("nueva-cita");
@@ -475,7 +637,7 @@ function renderDoctores() {
   setEl("doctores-count", `${medicos.length} doctor${medicos.length !== 1 ? "es" : ""}`);
 
   if (medicos.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:32px;color:var(--color-text-muted)">No hay doctores registrados</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--color-text-muted)">No hay doctores registrados</td></tr>`;
     return;
   }
 
@@ -483,14 +645,19 @@ function renderDoctores() {
     <tr id="row-medico-${m.id}">
       <td class="td-primary">${m.nombre}</td>
       <td>${m.especialidad || "—"}</td>
+      <td>Gabinete ${m.consultorio || m.consultorio_asignado || 1}</td>
+      <td>${m.horario_inicio ? m.horario_inicio.substring(0, 5) : '08:30'} - ${m.horario_fin ? m.horario_fin.substring(0, 5) : '20:30'}</td>
       <td>
-        <button class="btn btn-sm btn-danger" id="btn-eliminar-medico-${m.id}" onclick="eliminarMedico('${m.id}')">Eliminar</button>
+        <div class="td-actions">
+          <button class="btn btn-sm btn-secondary" onclick="abrirEditarDoctor('${m.id}')">Editar</button>
+          <button class="btn btn-sm btn-danger" id="btn-eliminar-medico-${m.id}" onclick="eliminarMedico('${m.id}')">Eliminar</button>
+        </div>
       </td>
     </tr>`).join("");
 }
 
 function setupDoctoresForm() {
-  document.getElementById("btn-agregar-medico").addEventListener("click", () => {
+  document.getElementById("btn-agregar-medico")?.addEventListener("click", () => {
     const nombre = document.getElementById("input-medico-nombre").value.trim();
     const especialidad = document.getElementById("input-medico-especialidad").value.trim();
 
@@ -505,12 +672,13 @@ function setupDoctoresForm() {
       return;
     }
 
-    medicos.push({ id: generateId("M"), nombre, especialidad });
+    medicos.push({ id: generateId("M"), nombre, especialidad, consultorio: 1, horario_inicio: "08:30:00", horario_fin: "20:30:00" });
     saveMedicos(medicos);
     document.getElementById("input-medico-nombre").value = "";
     document.getElementById("input-medico-especialidad").value = "";
     renderDoctores();
     populateMedicosSelect();
+    populateAgendaDoctorFilter();
     showAlert("alert-doctores", "success", `${nombre} agregado correctamente.`);
   });
 }
@@ -520,8 +688,530 @@ window.eliminarMedico = function(medicoId) {
   saveMedicos(medicos);
   renderDoctores();
   populateMedicosSelect();
+  populateAgendaDoctorFilter();
   showToast("Doctor eliminado.", "error");
 };
+
+// ── Modal: Alta Nuevo Paciente ───────────────────────────────────────────────
+function setupNuevoPacienteModal() {
+  const btnAbrir = document.getElementById("btn-abrir-nuevo-paciente");
+  const modal = document.getElementById("modal-nuevo-paciente");
+  const btnCerrar = document.getElementById("btn-cerrar-nuevo-paciente");
+  const form = document.getElementById("form-nuevo-paciente");
+
+  if (btnAbrir && modal) {
+    btnAbrir.addEventListener("click", () => {
+      hideAlert("alert-nuevo-paciente");
+      modal.classList.add("open");
+    });
+  }
+
+  if (btnCerrar && modal) {
+    btnCerrar.addEventListener("click", () => {
+      modal.classList.remove("open");
+    });
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const dni = getVal("nuevo-p-dni").toUpperCase();
+      const tel = getVal("nuevo-p-telefono");
+      const nom = getVal("nuevo-p-nombre");
+      const email = getVal("nuevo-p-email");
+      const rgpd = document.getElementById("nuevo-p-rgpd")?.checked ?? true;
+
+      if (!dni || !tel || !nom) {
+        showAlert("alert-nuevo-paciente", "error", "DNI, Teléfono y Nombre son campos obligatorios.");
+        return;
+      }
+
+      const pacientes = getPacientes();
+      if (pacientes.some(p => p.dni === dni)) {
+        showAlert("alert-nuevo-paciente", "error", `Ya existe un paciente con el DNI ${dni}.`);
+        return;
+      }
+
+      const nuevoP = {
+        id: generateId("P"),
+        nombre: nom,
+        dni: dni,
+        telefono: tel,
+        email: email,
+        fechaNacimiento: "",
+        historial: []
+      };
+
+      pacientes.push(nuevoP);
+      savePacientes(pacientes);
+      renderPacientes();
+
+      await syncPacienteToSupabase({
+        dni,
+        nombreCompleto: nom,
+        telefono: tel,
+        email,
+        acepta_rgpd: rgpd
+      });
+
+      modal.classList.remove("open");
+      form.reset();
+      showToast(`Paciente ${nom} registrado con éxito en la clínica y en Supabase.`, "success");
+    });
+  }
+}
+
+async function syncPacienteToSupabase(data) {
+  const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+  const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+  const headers = {
+    "apikey": SERVICE_KEY,
+    "Authorization": "Bearer " + SERVICE_KEY,
+    "Content-Type": "application/json",
+    "Prefer": "return=representation"
+  };
+
+  try {
+    const partes = (data.nombreCompleto || "").trim().split(" ");
+    const nombre = partes[0] || "Paciente";
+    const apellidos = partes.slice(1).join(" ") || "";
+
+    const payload = {
+      dni: data.dni,
+      nombre: nombre,
+      apellidos: apellidos,
+      telefono: data.telefono,
+      email: data.email || null,
+      acepta_rgpd: data.acepta_rgpd !== false,
+      fecha_alta: new Date().toISOString()
+    };
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/clinica_pacientes`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload)
+    });
+    console.log("[Sync ERP -> Supabase] Paciente sincronizado:", res.status);
+  } catch(e) {
+    console.warn("[Sync ERP -> Supabase] Error sincronizando paciente:", e);
+  }
+}
+
+// ── Modal: Editar Doctor ────────────────────────────────────────────────────
+function setupEditarDoctorModal() {
+  const modal = document.getElementById("modal-editar-doctor");
+  const btnCerrar = document.getElementById("btn-cerrar-editar-doctor");
+  const form = document.getElementById("form-editar-doctor");
+
+  if (btnCerrar && modal) {
+    btnCerrar.addEventListener("click", () => modal.classList.remove("open"));
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = getVal("edit-doc-id");
+      const nombre = getVal("edit-doc-nombre");
+      const esp = getVal("edit-doc-especialidad");
+      const consultorio = parseInt(getVal("edit-doc-consultorio") || "1", 10);
+      const dias = getVal("edit-doc-dias");
+      const hInicio = getVal("edit-doc-hora-inicio") || "08:30";
+      const hFin = getVal("edit-doc-hora-fin") || "20:30";
+
+      const medicos = getMedicos();
+      const idx = medicos.findIndex(m => m.id === id);
+      if (idx >= 0) {
+        medicos[idx] = {
+          ...medicos[idx],
+          nombre,
+          especialidad: esp,
+          consultorio,
+          dias,
+          horario_inicio: hInicio,
+          horario_fin: hFin
+        };
+        saveMedicos(medicos);
+        renderDoctores();
+        populateMedicosSelect();
+        populateAgendaDoctorFilter();
+      }
+
+      await syncDoctorToSupabase({
+        id,
+        nombre,
+        especialidad: esp,
+        consultorio,
+        horario_inicio: hInicio,
+        horario_fin: hFin
+      });
+
+      modal.classList.remove("open");
+      showToast(`Doctor ${nombre} actualizado correctamente en Supabase.`, "success");
+    });
+  }
+}
+
+window.abrirEditarDoctor = function(id) {
+  const m = getMedicos().find(x => x.id === id);
+  if (!m) return;
+  setInputVal("edit-doc-id", m.id);
+  setInputVal("edit-doc-nombre", m.nombre);
+  setInputVal("edit-doc-especialidad", m.especialidad || "");
+  setInputVal("edit-doc-consultorio", m.consultorio || m.consultorio_asignado || 1);
+  setInputVal("edit-doc-dias", m.dias || "Lunes a Viernes");
+  setInputVal("edit-doc-hora-inicio", m.horario_inicio ? m.horario_inicio.substring(0, 5) : "08:30");
+  setInputVal("edit-doc-hora-fin", m.horario_fin ? m.horario_fin.substring(0, 5) : "20:30");
+
+  hideAlert("alert-editar-doctor");
+  document.getElementById("modal-editar-doctor")?.classList.add("open");
+};
+
+async function syncDoctorToSupabase(doc) {
+  const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+  const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+  const headers = {
+    "apikey": SERVICE_KEY,
+    "Authorization": "Bearer " + SERVICE_KEY,
+    "Content-Type": "application/json"
+  };
+
+  try {
+    const payload = {
+      especialidad: doc.especialidad,
+      consultorio_asignado: doc.consultorio,
+      horario_inicio: (doc.horario_inicio || "08:30") + ":00",
+      horario_fin: (doc.horario_fin || "20:30") + ":00"
+    };
+
+    const url = `${SUPABASE_URL}/rest/v1/clinica_doctores?nombre_completo=ilike.*${encodeURIComponent(doc.nombre.replace(/^(Dr\.|Dra\.)\s*/, ''))}*`;
+    await fetch(url, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(payload)
+    });
+  } catch(e) {
+    console.warn("[Sync Doctor -> Supabase] Error:", e);
+  }
+}
+
+// ── Configuración, Bloqueo de Clínica y Vacaciones ──────────────────────────
+function setupConfiguracionPage() {
+  renderConfiguracionPage();
+
+  document.getElementById("btn-guardar-cfg-horarios")?.addEventListener("click", () => {
+    const cfg = getConfiguracion();
+    cfg.horaApertura = getVal("cfg-hora-apertura") || "08:30";
+    cfg.horaCierre = getVal("cfg-hora-cierre") || "20:30";
+    cfg.duraciones = {
+      "Odontología General": parseInt(getVal("dur-general") || "30", 10),
+      "Ortodoncia": parseInt(getVal("dur-ortodoncia") || "30", 10),
+      "Cirugía Oral e Implantes": parseInt(getVal("dur-cirugia") || "60", 10),
+      "Endodoncia / Periodoncia": parseInt(getVal("dur-endodoncia") || "45", 10)
+    };
+    saveConfiguracion(cfg);
+    showToast("Horarios y duraciones guardados con éxito.", "success");
+    renderAgendaView();
+  });
+
+  document.getElementById("btn-agregar-bloqueo")?.addEventListener("click", () => {
+    const fInicio = getVal("bloqueo-fecha-inicio");
+    const fFin = getVal("bloqueo-fecha-fin") || fInicio;
+    const motivo = getVal("bloqueo-motivo") || "Cierre de clínica";
+
+    if (!fInicio) {
+      showToast("Ingresa la fecha de inicio del bloqueo.", "error");
+      return;
+    }
+
+    const cfg = getConfiguracion();
+    cfg.bloqueosClinica = cfg.bloqueosClinica || [];
+    cfg.bloqueosClinica.push({
+      id: "B" + Date.now(),
+      fechaInicio: fInicio,
+      fechaFin: fFin,
+      motivo
+    });
+    saveConfiguracion(cfg);
+    setInputVal("bloqueo-fecha-inicio", "");
+    setInputVal("bloqueo-fecha-fin", "");
+    setInputVal("bloqueo-motivo", "");
+    renderListaBloqueos();
+    renderAgendaView();
+    showToast(`Clínica bloqueada del ${formatFecha(fInicio)} al ${formatFecha(fFin)}.`, "success");
+  });
+
+  document.getElementById("btn-registrar-vacaciones")?.addEventListener("click", async () => {
+    const docOrigen = getVal("vac-doctor-origen");
+    const docReemplazo = getVal("vac-doctor-reemplazo");
+    const fInicio = getVal("vac-fecha-inicio");
+    const fFin = getVal("vac-fecha-fin");
+
+    if (!docOrigen || !docReemplazo || !fInicio || !fFin) {
+      showToast("Completa todos los campos para registrar las vacaciones.", "error");
+      return;
+    }
+
+    if (docOrigen === docReemplazo) {
+      showToast("El profesional sustituto debe ser diferente al que sale de vacaciones.", "error");
+      return;
+    }
+
+    const cfg = getConfiguracion();
+    cfg.vacacionesDoctores = cfg.vacacionesDoctores || [];
+    cfg.vacacionesDoctores.push({
+      id: "V" + Date.now(),
+      doctorOrigen: docOrigen,
+      doctorReemplazo: docReemplazo,
+      fechaInicio: fInicio,
+      fechaFin: fFin,
+      fechaRegistro: new Date().toISOString()
+    });
+    saveConfiguracion(cfg);
+
+    const localCitas = getCitas();
+    let reasignadas = 0;
+    localCitas.forEach(c => {
+      if (c.medico === docOrigen && c.fecha >= fInicio && c.fecha <= fFin && c.estado !== "cancelada") {
+        c.medico = docReemplazo;
+        c.notas = (c.notas ? c.notas + " · " : "") + `Reasignada por vacaciones de ${docOrigen}`;
+        reasignadas++;
+      }
+    });
+    saveCitas(localCitas);
+
+    await reasignarCitasEnSupabase(docOrigen, docReemplazo, fInicio, fFin);
+
+    setInputVal("vac-fecha-inicio", "");
+    setInputVal("vac-fecha-fin", "");
+    renderListaVacaciones();
+    renderAgendaView();
+    renderDashboard();
+    showToast(`Vacaciones registradas. Se reasignaron ${reasignadas} turno(s) a ${docReemplazo}.`, "success");
+  });
+}
+
+function renderConfiguracionPage() {
+  const cfg = getConfiguracion();
+  setInputVal("cfg-hora-apertura", cfg.horaApertura || "08:30");
+  setInputVal("cfg-hora-cierre", cfg.horaCierre || "20:30");
+
+  if (cfg.duraciones) {
+    if (cfg.duraciones["Odontología General"]) setInputVal("dur-general", cfg.duraciones["Odontología General"]);
+    if (cfg.duraciones["Ortodoncia"]) setInputVal("dur-ortodoncia", cfg.duraciones["Ortodoncia"]);
+    if (cfg.duraciones["Cirugía Oral e Implantes"]) setInputVal("dur-cirugia", cfg.duraciones["Cirugía Oral e Implantes"]);
+    if (cfg.duraciones["Endodoncia / Periodoncia"]) setInputVal("dur-endodoncia", cfg.duraciones["Endodoncia / Periodoncia"]);
+  }
+
+  const medicos = getMedicos();
+  const selOrigen = document.getElementById("vac-doctor-origen");
+  const selReemplazo = document.getElementById("vac-doctor-reemplazo");
+  if (selOrigen && selReemplazo) {
+    const opts = medicos.map(m => `<option value="${m.nombre}">${m.nombre} (${m.especialidad || 'General'})</option>`).join("");
+    selOrigen.innerHTML = opts;
+    selReemplazo.innerHTML = opts;
+    if (medicos.length > 1) selReemplazo.selectedIndex = 1;
+  }
+
+  renderListaBloqueos();
+  renderListaVacaciones();
+}
+
+function renderListaBloqueos() {
+  const container = document.getElementById("lista-bloqueos");
+  if (!container) return;
+  const cfg = getConfiguracion();
+  const bloqueos = cfg.bloqueosClinica || [];
+
+  if (bloqueos.length === 0) {
+    container.innerHTML = '<p style="color:var(--color-text-muted)">No hay cierres programados.</p>';
+    return;
+  }
+
+  container.innerHTML = bloqueos.map(b => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;margin-bottom:6px">
+      <div>
+        <strong style="color:#B91C1C">${b.motivo || 'Cierre de Clínica'}</strong>
+        <div style="font-size:11px;color:#7F1D1D">Desde ${formatFecha(b.fechaInicio)} hasta ${formatFecha(b.fechaFin)}</div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="eliminarBloqueoClinica('${b.id}')">Quitar</button>
+    </div>
+  `).join("");
+}
+
+window.eliminarBloqueoClinica = function(id) {
+  const cfg = getConfiguracion();
+  cfg.bloqueosClinica = (cfg.bloqueosClinica || []).filter(b => b.id !== id);
+  saveConfiguracion(cfg);
+  renderListaBloqueos();
+  renderAgendaView();
+  showToast("Bloqueo eliminado.", "success");
+};
+
+function renderListaVacaciones() {
+  const container = document.getElementById("lista-vacaciones");
+  if (!container) return;
+  const cfg = getConfiguracion();
+  const vacs = cfg.vacacionesDoctores || [];
+
+  if (vacs.length === 0) {
+    container.innerHTML = '<p style="color:var(--color-text-muted)">No hay registros de vacaciones activos.</p>';
+    return;
+  }
+
+  container.innerHTML = vacs.map(v => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;margin-bottom:6px">
+      <div>
+        <strong style="color:#166534">${v.doctorOrigen} ➜ Reemplaza: ${v.doctorReemplazo}</strong>
+        <div style="font-size:11px;color:#14532D">Período: ${formatFecha(v.fechaInicio)} al ${formatFecha(v.fechaFin)}</div>
+      </div>
+      <button class="btn btn-sm btn-secondary" onclick="eliminarVacaciones('${v.id}')">Eliminar</button>
+    </div>
+  `).join("");
+}
+
+window.eliminarVacaciones = function(id) {
+  const cfg = getConfiguracion();
+  cfg.vacacionesDoctores = (cfg.vacacionesDoctores || []).filter(v => v.id !== id);
+  saveConfiguracion(cfg);
+  renderListaVacaciones();
+  showToast("Registro de vacaciones eliminado.", "info");
+};
+
+async function reasignarCitasEnSupabase(doctorOrigenNombre, doctorReemplazoNombre, fechaInicio, fechaFin) {
+  const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+  const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+  const headers = {
+    "apikey": SERVICE_KEY,
+    "Authorization": "Bearer " + SERVICE_KEY,
+    "Content-Type": "application/json"
+  };
+
+  try {
+    const docRes = await fetch(`${SUPABASE_URL}/rest/v1/clinica_doctores?select=*`, { headers });
+    const docs = await docRes.json();
+    if (!Array.isArray(docs)) return;
+
+    const docOrigObj = docs.find(d => (d.nombre_completo || "").toLowerCase().includes(doctorOrigenNombre.toLowerCase().replace(/^(dr\.|dra\.)\s*/, '')));
+    const docReempObj = docs.find(d => (d.nombre_completo || "").toLowerCase().includes(doctorReemplazoNombre.toLowerCase().replace(/^(dr\.|dra\.)\s*/, '')));
+
+    if (!docOrigObj || !docReempObj) {
+      console.warn("[Reasignar Supabase] Uno de los doctores no fue hallado en Supabase");
+      return;
+    }
+
+    const patchUrl = `${SUPABASE_URL}/rest/v1/clinica_citas?doctor_id=eq.${docOrigObj.id}&fecha_hora_inicio=gte.${fechaInicio}T00:00:00Z&fecha_hora_inicio=lte.${fechaFin}T23:59:59Z`;
+    await fetch(patchUrl, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        doctor_id: docReempObj.id,
+        consultorio_num: docReempObj.consultorio_asignado || 1
+      })
+    });
+
+    console.log(`[Reasignar Supabase] Citas de ${doctorOrigenNombre} reasignadas a ${doctorReemplazoNombre} en Supabase.`);
+  } catch(e) {
+    console.warn("[Reasignar Supabase] Error:", e);
+  }
+}
+
+async function fetchPacientesFromSupabase() {
+  const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+  const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+  const headers = {
+    "apikey": SERVICE_KEY,
+    "Authorization": "Bearer " + SERVICE_KEY
+  };
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/clinica_pacientes?select=*`, { headers });
+    if (!res.ok) return;
+    const remotePacs = await res.json();
+    if (!Array.isArray(remotePacs)) return;
+
+    const localPacs = getPacientes();
+    let updated = false;
+
+    for (const rp of remotePacs) {
+      const idx = localPacs.findIndex(p => p.dni === rp.dni);
+      const nombreCompleto = `${rp.nombre} ${rp.apellidos || ''}`.trim();
+      const pObj = {
+        id: rp.id,
+        dni: rp.dni,
+        nombre: nombreCompleto,
+        telefono: rp.telefono || "—",
+        email: rp.email || "",
+        fechaNacimiento: "",
+        historial: []
+      };
+
+      if (idx >= 0) {
+        localPacs[idx] = { ...localPacs[idx], ...pObj };
+        updated = true;
+      } else {
+        localPacs.push(pObj);
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      savePacientes(localPacs);
+      renderPacientes();
+      renderDashboard();
+    }
+  } catch(e) {
+    console.warn("[Sync Supabase -> ERP] Error fetching pacientes:", e);
+  }
+}
+
+async function fetchDoctoresFromSupabase() {
+  const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+  const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+  const headers = {
+    "apikey": SERVICE_KEY,
+    "Authorization": "Bearer " + SERVICE_KEY
+  };
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/clinica_doctores?select=*`, { headers });
+    if (!res.ok) return;
+    const remoteDocs = await res.json();
+    if (!Array.isArray(remoteDocs) || remoteDocs.length === 0) return;
+
+    const localDocs = getMedicos();
+    let updated = false;
+
+    for (const rd of remoteDocs) {
+      const idx = localDocs.findIndex(d => d.nombre.toLowerCase() === (rd.nombre_completo || "").toLowerCase());
+      const dObj = {
+        id: rd.id,
+        nombre: rd.nombre_completo,
+        especialidad: rd.especialidad || "Odontología General",
+        consultorio: rd.consultorio_asignado || 1,
+        horario_inicio: rd.horario_inicio || "08:30:00",
+        horario_fin: rd.horario_fin || "20:30:00",
+        dias: "Lunes a Viernes"
+      };
+
+      if (idx >= 0) {
+        localDocs[idx] = { ...localDocs[idx], ...dObj };
+        updated = true;
+      } else {
+        localDocs.push(dObj);
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      saveMedicos(localDocs);
+      renderDoctores();
+      populateMedicosSelect();
+      populateAgendaDoctorFilter();
+    }
+  } catch(e) {
+    console.warn("[Sync Supabase -> ERP] Error fetching doctores:", e);
+  }
+}
 
 // ── Navigate exposed globally ─────────────────────────────────────────────────
 window.navigateTo = navigateTo;
