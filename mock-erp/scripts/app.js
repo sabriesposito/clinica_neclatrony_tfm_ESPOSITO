@@ -16,6 +16,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupBusquedaPacientes();
   setupDoctoresForm();
   setupNuevoPacienteModal();
+  setupEditarPacienteModal();
+  setupBajaPacienteModal();
   setupEditarDoctorModal();
   setupConfiguracionPage();
   fetchPacientesFromSupabase();
@@ -507,36 +509,47 @@ function limpiarFormCita(showMsg = true) {
 
 // ── Pacientes ─────────────────────────────────────────────────────────────────
 function renderPacientes(filtro = "") {
-  let pacientes = getPacientes();
+  let pacientes = getPacientes().filter(p => p.activo !== false);
   if (filtro) {
-    const q = filtro.toLowerCase();
+    const q = filtro.toLowerCase().trim();
     pacientes = pacientes.filter(p =>
-      p.nombre.toLowerCase().includes(q) || p.dni.toLowerCase().includes(q) || p.telefono.includes(q)
+      (p.nombre || "").toLowerCase().includes(q) ||
+      (p.apellidos || "").toLowerCase().includes(q) ||
+      (p.dni || "").toLowerCase().includes(q) ||
+      (p.telefono || "").toLowerCase().includes(q) ||
+      (p.email || "").toLowerCase().includes(q)
     );
   }
+
+  const countEl = document.getElementById("pacientes-count");
+  if (countEl) countEl.textContent = `${pacientes.length} paciente${pacientes.length !== 1 ? 's' : ''}`;
 
   const tbody = document.getElementById("tbody-pacientes");
   if (!tbody) return;
 
   if (pacientes.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--color-text-muted)">No se encontraron pacientes</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--color-text-muted)">No se encontraron pacientes que coincidan con la búsqueda.</td></tr>`;
     return;
   }
 
   const citas = getCitas();
   tbody.innerHTML = pacientes.map(p => {
-    const citasPaciente = citas.filter(c => c.pacienteId === p.id);
-    const ultima = citasPaciente.sort((a,b) => b.fecha.localeCompare(a.fecha))[0];
+    const citasPaciente = citas.filter(c => c.pacienteId === p.id || (p.dni && (c.dni === p.dni || (c.pacienteNombre && c.pacienteNombre.toLowerCase().includes((p.nombre || '').toLowerCase())))));
+    const ultima = citasPaciente.sort((a,b) => (b.fecha || '').localeCompare(a.fecha || ''))[0];
+    const nombreCompleto = `${p.nombre} ${p.apellidos || ''}`.trim();
     return `
       <tr id="row-paciente-${p.id}" data-paciente-id="${p.id}">
-        <td class="td-primary">${p.nombre}</td>
-        <td>${p.dni}</td>
-        <td>${p.telefono}</td>
+        <td class="td-primary">${nombreCompleto}</td>
+        <td><code>${p.dni}</code></td>
+        <td>${p.telefono || '—'}</td>
+        <td style="color:var(--color-text-muted);font-size:12.5px">${p.email || '—'}</td>
         <td>${ultima ? formatFecha(ultima.fecha) : "—"}</td>
         <td>
-          <div class="td-actions">
+          <div class="td-actions" style="display:flex;gap:4px">
             <button class="btn btn-sm btn-secondary" id="btn-ver-${p.id}" onclick="verPaciente('${p.id}')">Ver ficha</button>
-            <button class="btn btn-sm btn-primary" onclick="irANuevaCitaPaciente('${p.id}')">Nueva cita</button>
+            <button class="btn btn-sm btn-secondary" onclick="abrirEditarPaciente('${p.id}')" title="Modificar datos">Editar</button>
+            <button class="btn btn-sm btn-danger" onclick="abrirBajaPaciente('${p.id}')" title="Dar de baja">Baja</button>
+            <button class="btn btn-sm btn-primary" onclick="irANuevaCitaPaciente('${p.id}')">+ Cita</button>
           </div>
         </td>
       </tr>`;
@@ -554,7 +567,7 @@ function irANuevaCitaPaciente(pacienteId) {
   if (!p) return;
   navigateTo("nueva-cita");
   setTimeout(() => {
-    setInputVal("input-nombre-paciente", p.nombre);
+    setInputVal("input-nombre-paciente", `${p.nombre} ${p.apellidos || ''}`.trim());
     setInputVal("input-dni-paciente", p.dni);
     setInputVal("input-telefono-paciente", p.telefono);
     setInputVal("input-email-paciente", p.email);
@@ -565,12 +578,29 @@ function irANuevaCitaPaciente(pacienteId) {
 function verPaciente(pacienteId) {
   const p = getPacientes().find(x => x.id === pacienteId);
   if (!p) return;
-  const citas = getCitas().filter(c => c.pacienteId === pacienteId).sort((a,b) => b.fecha.localeCompare(a.fecha));
+  const citas = getCitas().filter(c => c.pacienteId === pacienteId || (p.dni && c.pacienteNombre && c.pacienteNombre.toLowerCase().includes((p.nombre || '').toLowerCase()))).sort((a,b) => (b.fecha || '').localeCompare(a.fecha || ''));
 
-  document.getElementById("modal-paciente-nombre").textContent = p.nombre;
+  const nombreCompleto = `${p.nombre} ${p.apellidos || ''}`.trim();
+  document.getElementById("modal-paciente-nombre").textContent = nombreCompleto;
   document.getElementById("modal-paciente-dni").textContent = p.dni;
-  document.getElementById("modal-paciente-tel").textContent = p.telefono;
-  document.getElementById("modal-paciente-email").textContent = p.email;
+  document.getElementById("modal-paciente-tel").textContent = p.telefono || '—';
+  document.getElementById("modal-paciente-email").textContent = p.email || '—';
+
+  const btnEditar = document.getElementById("btn-ficha-editar-paciente");
+  if (btnEditar) {
+    btnEditar.onclick = () => {
+      document.getElementById("modal-ficha-paciente").classList.remove("open");
+      abrirEditarPaciente(pacienteId);
+    };
+  }
+
+  const btnBaja = document.getElementById("btn-ficha-baja-paciente");
+  if (btnBaja) {
+    btnBaja.onclick = () => {
+      document.getElementById("modal-ficha-paciente").classList.remove("open");
+      abrirBajaPaciente(pacienteId);
+    };
+  }
 
   const histContainer = document.getElementById("modal-historial");
   if (citas.length === 0) {
@@ -586,7 +616,7 @@ function verPaciente(pacienteId) {
                 <td>${formatFecha(c.fecha)}</td>
                 <td>${c.tratamiento}</td>
                 <td>${c.medico}</td>
-                <td><span class="badge badge-${c.estado}">${capitalize(c.estado)}</span></td>
+                <td><span class="badge badge-${(c.estado || '').toLowerCase()}">${capitalize(c.estado)}</span></td>
               </tr>`).join("")}
           </tbody>
         </table>
@@ -601,6 +631,189 @@ document.addEventListener("click", (e) => {
     document.getElementById("modal-ficha-paciente").classList.remove("open");
   }
 });
+
+// ── Modificar Datos del Paciente ─────────────────────────────────────────────
+window.abrirEditarPaciente = function(pacienteId) {
+  const p = getPacientes().find(x => x.id === pacienteId);
+  if (!p) return;
+  setInputVal("edit-p-id", p.id);
+  setInputVal("edit-p-dni", p.dni || "");
+  setInputVal("edit-p-nombre", `${p.nombre} ${p.apellidos || ''}`.trim());
+  setInputVal("edit-p-telefono", p.telefono || "");
+  setInputVal("edit-p-email", p.email || "");
+
+  hideAlert("alert-editar-paciente");
+  document.getElementById("modal-editar-paciente")?.classList.add("open");
+};
+
+function setupEditarPacienteModal() {
+  const modal = document.getElementById("modal-editar-paciente");
+  const btnCerrar = document.getElementById("btn-cerrar-editar-paciente");
+  const form = document.getElementById("form-editar-paciente");
+
+  if (btnCerrar && modal) {
+    btnCerrar.addEventListener("click", () => modal.classList.remove("open"));
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = getVal("edit-p-id");
+      const dni = getVal("edit-p-dni").toUpperCase().trim();
+      const nombreCompleto = getVal("edit-p-nombre").trim();
+      const tel = getVal("edit-p-telefono").trim();
+      const email = getVal("edit-p-email").trim();
+
+      if (!dni || !nombreCompleto || !tel) {
+        showAlert("alert-editar-paciente", "error", "DNI, Nombre y Teléfono son campos obligatorios.");
+        return;
+      }
+
+      const partes = nombreCompleto.split(" ");
+      const nombre = partes[0] || "";
+      const apellidos = partes.slice(1).join(" ") || "";
+
+      const pacientes = getPacientes();
+      const idx = pacientes.findIndex(p => p.id === id);
+      if (idx >= 0) {
+        pacientes[idx] = {
+          ...pacientes[idx],
+          dni,
+          nombre,
+          apellidos,
+          telefono: tel,
+          email
+        };
+        savePacientes(pacientes);
+      }
+
+      // Actualizar nombre en citas locales
+      const citas = getCitas();
+      citas.forEach(c => {
+        if (c.pacienteId === id || c.dni === dni) {
+          c.pacienteNombre = nombreCompleto;
+        }
+      });
+      saveCitas(citas);
+
+      // Sincronizar actualización con Supabase
+      await syncUpdatePacienteToSupabase(id, dni, nombre, apellidos, tel, email);
+
+      modal.classList.remove("open");
+      renderPacientes();
+      renderAgendaView();
+      renderDashboard();
+      showToast(`Datos de ${nombreCompleto} actualizados con éxito en Supabase.`, "success");
+    });
+  }
+}
+
+async function syncUpdatePacienteToSupabase(id, dni, nombre, apellidos, telefono, email) {
+  const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+  const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+  const headers = {
+    "apikey": SERVICE_KEY,
+    "Authorization": "Bearer " + SERVICE_KEY,
+    "Content-Type": "application/json"
+  };
+
+  try {
+    let url;
+    if (id && id.includes("-") && id.length > 20) {
+      url = `${SUPABASE_URL}/rest/v1/clinica_pacientes?id=eq.${id}`;
+    } else {
+      url = `${SUPABASE_URL}/rest/v1/clinica_pacientes?dni=eq.${dni}`;
+    }
+
+    const payload = {
+      dni,
+      nombre,
+      apellidos,
+      telefono,
+      email: email || null
+    };
+
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(payload)
+    });
+    console.log(`[Supabase] Paciente ${id || dni} actualizado (status: ${res.status})`);
+  } catch(e) {
+    console.warn("[Supabase] Error actualizando paciente:", e);
+  }
+}
+
+// ── Dar de Baja Paciente ─────────────────────────────────────────────────────
+window.abrirBajaPaciente = function(pacienteId) {
+  const p = getPacientes().find(x => x.id === pacienteId);
+  if (!p) return;
+  setInputVal("baja-paciente-id", p.id);
+  const nombre = `${p.nombre} ${p.apellidos || ''}`.trim();
+  const txt = document.getElementById("modal-baja-paciente-texto");
+  if (txt) {
+    txt.textContent = `¿Estás seguro de dar de baja a ${nombre} (DNI ${p.dni})? Quedará desactivado en el sistema y en Supabase.`;
+  }
+  document.getElementById("modal-baja-paciente")?.classList.add("open");
+};
+
+function setupBajaPacienteModal() {
+  const modal = document.getElementById("modal-baja-paciente");
+  const btnCancelar = document.getElementById("btn-cancelar-baja-paciente");
+  const btnConfirmar = document.getElementById("btn-confirmar-baja-paciente");
+
+  if (btnCancelar && modal) {
+    btnCancelar.addEventListener("click", () => modal.classList.remove("open"));
+  }
+
+  if (btnConfirmar && modal) {
+    btnConfirmar.addEventListener("click", async () => {
+      const id = getVal("baja-paciente-id");
+      const pacientes = getPacientes();
+      const p = pacientes.find(x => x.id === id);
+      if (!p) return;
+
+      p.activo = false;
+      savePacientes(pacientes);
+
+      // Desactivar en Supabase (Soft delete médico RGPD)
+      await syncBajaPacienteToSupabase(p.id, p.dni);
+
+      modal.classList.remove("open");
+      renderPacientes();
+      renderDashboard();
+      showToast(`Paciente ${p.nombre} dado de baja en el sistema y en Supabase.`, "info");
+    });
+  }
+}
+
+async function syncBajaPacienteToSupabase(id, dni) {
+  const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
+  const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
+  const headers = {
+    "apikey": SERVICE_KEY,
+    "Authorization": "Bearer " + SERVICE_KEY,
+    "Content-Type": "application/json"
+  };
+
+  try {
+    let url;
+    if (id && id.includes("-") && id.length > 20) {
+      url = `${SUPABASE_URL}/rest/v1/clinica_pacientes?id=eq.${id}`;
+    } else {
+      url = `${SUPABASE_URL}/rest/v1/clinica_pacientes?dni=eq.${dni}`;
+    }
+
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ activo: false })
+    });
+    console.log(`[Supabase] Paciente ${id || dni} marcado como inactivo (status: ${res.status})`);
+  } catch(e) {
+    console.warn("[Supabase] Error dando de baja paciente:", e);
+  }
+}
 
 // ── Confirmar / Cancelar citas ────────────────────────────────────────────────
 window.confirmarCita = async function(citaId) {
@@ -1193,6 +1406,7 @@ async function fetchPacientesFromSupabase() {
         telefono: rp.telefono || "—",
         email: rp.email || "",
         fechaNacimiento: "",
+        activo: rp.activo !== false,
         historial: []
       };
 
