@@ -230,6 +230,7 @@ function renderAgendaView() {
   if (!container) return;
 
   const doctorFiltro = (document.getElementById("agenda-filtro-doctor")?.value || "").trim().toLowerCase();
+  const doctorObj = doctorFiltro ? getMedicos().find(m => m.nombre.toLowerCase().includes(doctorFiltro)) : null;
   const allCitas = getCitas();
 
   // 3-day dates array
@@ -282,6 +283,7 @@ function renderAgendaView() {
 
     const dayCitas = windowCitas.filter(c => c.fecha === dateStr);
     const isBloqueada = isClinicaBloqueada(dateStr);
+    const isDocWorkingToday = doctorObj ? doctorAtiendeEnFecha(doctorObj, dateStr) : true;
 
     const col = document.createElement("div");
     col.className = "agenda-day-column";
@@ -306,6 +308,43 @@ function renderAgendaView() {
           No hay turnos disponibles por feriado o mantenimiento programado.
         </div>
       `;
+    } else if (doctorObj && !isDocWorkingToday) {
+      colHtml += `
+        <div style="background:#F8FAFC;border:1.5px dashed var(--color-border);border-radius:var(--radius-md);padding:18px 12px;text-align:center;margin-bottom:var(--sp-3)">
+          <div style="font-size:22px;margin-bottom:4px">🗓️</div>
+          <div style="font-weight:600;color:var(--color-text-medium);font-size:12.5px">${doctorObj.nombre} no atiende los ${dayName}</div>
+          <div style="font-size:11.5px;color:var(--color-text-muted);margin-top:4px">Días de atención: <strong>${doctorObj.dias || 'Lunes a Viernes'}</strong></div>
+        </div>
+      `;
+
+      if (dayCitas.length > 0) {
+        dayCitas.forEach(cita => {
+          const rawEstado = (cita.estado || "").toLowerCase().trim();
+          const isConfirmada = rawEstado === "confirmada";
+          const isCancelada = rawEstado === "cancelada";
+          const normClass = isConfirmada ? "confirmada" : (isCancelada ? "cancelada" : (rawEstado === "programada" ? "programada" : "pendiente"));
+          const estadoLabel = rawEstado === "programada" ? "Programada" : (isConfirmada ? "Confirmada" : (isCancelada ? "Cancelada" : "Pendiente"));
+
+          colHtml += `
+            <div class="slot-card ${normClass}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
+              <div class="slot-row-main">
+                <div class="slot-time-patient">
+                  <span class="slot-time-badge">${cita.hora} - ${calcularFinTurno(cita.hora, cita.tratamiento)}</span>
+                  <span class="slot-patient-name" onclick="buscarYVerPaciente('${cita.pacienteNombre}')">${cita.pacienteNombre}</span>
+                </div>
+                <div class="slot-row-actions">
+                  <span class="badge badge-${normClass}">${estadoLabel}</span>
+                  ${(!isConfirmada && !isCancelada) ? `<button class="btn-slot-action btn-slot-confirm" onclick="confirmarCita('${cita.id}')" title="Confirmar asistencia">✓</button>` : ''}
+                  ${!isCancelada ? `<button class="btn-slot-action btn-slot-cancel" onclick="cancelarCita('${cita.id}')" title="Cancelar cita">✕</button>` : ''}
+                </div>
+              </div>
+              <div class="slot-row-sub">
+                <span class="slot-sub-text">${cita.tratamiento} · <strong>${cita.medico}</strong></span>
+              </div>
+            </div>
+          `;
+        });
+      }
     } else {
       HORAS.forEach(hora => {
         const cita = dayCitas.find(c => c.hora === hora);
@@ -452,6 +491,17 @@ function guardarCita() {
   if (slots.includes(hora)) {
     showAlert("alert-form", "error", `El horario ${hora} del ${formatFecha(fecha)} ya está ocupado. Selecciona otro horario.`);
     return;
+  }
+
+  // Check doctor working days
+  if (medico) {
+    const medObj = getMedicos().find(m => m.nombre.toLowerCase() === medico.toLowerCase());
+    if (medObj && !doctorAtiendeEnFecha(medObj, fecha)) {
+      const dObj = new Date(fecha + "T12:00:00Z");
+      const diaNombre = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"][dObj.getUTCDay()];
+      showAlert("alert-form", "error", `El profesional ${medObj.nombre} no atiende los ${diaNombre}. Sus días de atención configurados son: ${medObj.dias || 'Lunes a Viernes'}.`);
+      return;
+    }
   }
 
   // Find or create patient
@@ -893,6 +943,133 @@ function populateMedicosSelect() {
   sel.innerHTML = medicos.map(m => `<option value="${m.nombre}">${m.nombre}</option>`).join("");
 }
 
+// ── Manejo de Días de Atención de Doctores ──────────────────────────────────
+function parseDiasIndices(dias) {
+  if (Array.isArray(dias)) return dias.map(Number);
+  if (!dias || typeof dias !== "string") return [1, 2, 3, 4, 5];
+  const lower = dias.toLowerCase();
+  if (lower.includes("lunes a viernes") || lower.includes("lun a vie")) return [1, 2, 3, 4, 5];
+  if (lower.includes("lunes a sábado") || lower.includes("lunes a sabado") || lower.includes("lun a sab")) return [1, 2, 3, 4, 5, 6];
+  if (lower.includes("lunes a jueves") || lower.includes("lun a jue")) return [1, 2, 3, 4];
+  if (lower.includes("martes y jueves") || lower.includes("mar, jue") || lower.includes("mar y jue")) return [2, 4];
+  if (lower.includes("fin de semana") || lower.includes("fines de semana")) return [6, 0];
+  if (lower.includes("todos")) return [1, 2, 3, 4, 5, 6, 0];
+
+  const indices = [];
+  if (lower.includes("lun")) indices.push(1);
+  if (lower.includes("mar")) indices.push(2);
+  if (lower.includes("mié") || lower.includes("mie")) indices.push(3);
+  if (lower.includes("jue")) indices.push(4);
+  if (lower.includes("vie")) indices.push(5);
+  if (lower.includes("sáb") || lower.includes("sab")) indices.push(6);
+  if (lower.includes("dom")) indices.push(0);
+
+  return indices.length > 0 ? indices : [1, 2, 3, 4, 5];
+}
+
+function doctorAtiendeEnFecha(medico, fechaStr) {
+  if (!medico) return true;
+  const dObj = new Date(fechaStr + "T12:00:00Z");
+  const dayIdx = dObj.getUTCDay(); // 0 = Dom, 1 = Lun, 2 = Mar, 3 = Mié, 4 = Jue, 5 = Vie, 6 = Sáb
+  const indices = parseDiasIndices(medico.dias_indices || medico.dias);
+  return indices.includes(dayIdx);
+}
+
+function formatDaysText(days) {
+  if (!days || days.length === 0) return "Ninguno";
+  const sorted = [...days].sort((a, b) => {
+    const ordA = a === 0 ? 7 : a;
+    const ordB = b === 0 ? 7 : b;
+    return ordA - ordB;
+  });
+  const key = sorted.join(",");
+  if (key === "1,2,3,4,5") return "Lunes a Viernes";
+  if (key === "1,2,3,4,5,6") return "Lunes a Sábado";
+  if (key === "1,3,5") return "Lun, Mié, Vie";
+  if (key === "2,4") return "Mar, Jue";
+  if (key === "1,2,3,4") return "Lunes a Jueves";
+  if (key === "6,0") return "Fines de Semana";
+  if (key === "1,2,3,4,5,6,0") return "Todos los días";
+
+  const labels = { 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb", 0: "Dom" };
+  return sorted.map(d => labels[d]).join(", ");
+}
+
+function setupDaySelector(containerId, selectId, hiddenInputId) {
+  const container = document.getElementById(containerId);
+  const select = document.getElementById(selectId);
+  const hidden = document.getElementById(hiddenInputId);
+  if (!container || !select || !hidden) return;
+
+  function getActiveDays() {
+    return Array.from(container.querySelectorAll(".day-pill.active"))
+      .map(btn => parseInt(btn.dataset.day, 10));
+  }
+
+  function syncHidden() {
+    const active = getActiveDays();
+    hidden.value = formatDaysText(active);
+  }
+
+  select.addEventListener("change", () => {
+    const val = select.value;
+    if (val !== "custom") {
+      const days = val.split(",").map(Number);
+      container.querySelectorAll(".day-pill").forEach(btn => {
+        const d = parseInt(btn.dataset.day, 10);
+        btn.classList.toggle("active", days.includes(d));
+      });
+      syncHidden();
+    }
+  });
+
+  container.querySelectorAll(".day-pill").forEach(btn => {
+    btn.addEventListener("click", () => {
+      btn.classList.toggle("active");
+      const active = getActiveDays();
+      const sorted = [...active].sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b));
+      const key = sorted.join(",");
+      let matched = false;
+      for (const opt of select.options) {
+        if (opt.value === key) {
+          select.value = key;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) select.value = "custom";
+      syncHidden();
+    });
+  });
+}
+
+function setDaySelectorDays(containerId, selectId, hiddenInputId, diasInput) {
+  const container = document.getElementById(containerId);
+  const select = document.getElementById(selectId);
+  const hidden = document.getElementById(hiddenInputId);
+  if (!container || !select || !hidden) return;
+
+  const days = parseDiasIndices(diasInput);
+  container.querySelectorAll(".day-pill").forEach(btn => {
+    const d = parseInt(btn.dataset.day, 10);
+    btn.classList.toggle("active", days.includes(d));
+  });
+
+  const sorted = [...days].sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b));
+  const key = sorted.join(",");
+  let matched = false;
+  for (const opt of select.options) {
+    if (opt.value === key) {
+      select.value = key;
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) select.value = "custom";
+
+  hidden.value = (typeof diasInput === "string" && diasInput) ? diasInput : formatDaysText(days);
+}
+
 function renderDoctores() {
   const medicos = getMedicos();
   const tbody = document.getElementById("tbody-doctores");
@@ -944,6 +1121,7 @@ async function guardarNuevoDoctor({ nombre, especialidad, consultorio, dias, hor
     especialidad: especialidad || "Odontología General",
     consultorio: consultorioNum,
     dias: diasTexto,
+    dias_indices: parseDiasIndices(diasTexto),
     horario_inicio: hInicio,
     horario_fin: hFin
   };
@@ -961,6 +1139,10 @@ async function guardarNuevoDoctor({ nombre, especialidad, consultorio, dias, hor
 }
 
 function setupDoctoresForm() {
+  // Inicializar selectores de días con menú y chips interactivos
+  setupDaySelector("pills-card-dias", "input-medico-dias-preset", "input-medico-dias");
+  setupDaySelector("pills-modal-nuevo-dias", "modal-doc-dias-preset", "modal-doc-dias");
+
   // 1. Formulario en tarjeta dentro de la página
   document.getElementById("btn-agregar-medico")?.addEventListener("click", async () => {
     const nombre = document.getElementById("input-medico-nombre").value.trim();
@@ -984,9 +1166,9 @@ function setupDoctoresForm() {
       document.getElementById("input-medico-nombre").value = "";
       document.getElementById("input-medico-especialidad").value = "";
       if (document.getElementById("input-medico-consultorio")) document.getElementById("input-medico-consultorio").value = "1";
-      if (document.getElementById("input-medico-dias")) document.getElementById("input-medico-dias").value = "Lunes a Viernes";
       if (document.getElementById("input-medico-hora-inicio")) document.getElementById("input-medico-hora-inicio").value = "08:30";
       if (document.getElementById("input-medico-hora-fin")) document.getElementById("input-medico-hora-fin").value = "20:30";
+      setDaySelectorDays("pills-card-dias", "input-medico-dias-preset", "input-medico-dias", "Lunes a Viernes");
     }
   });
 
@@ -1001,9 +1183,9 @@ function setupDoctoresForm() {
       hideAlert("alert-nuevo-doctor");
       formModal?.reset();
       if (document.getElementById("modal-doc-consultorio")) document.getElementById("modal-doc-consultorio").value = "1";
-      if (document.getElementById("modal-doc-dias")) document.getElementById("modal-doc-dias").value = "Lunes a Viernes";
       if (document.getElementById("modal-doc-hora-inicio")) document.getElementById("modal-doc-hora-inicio").value = "08:30";
       if (document.getElementById("modal-doc-hora-fin")) document.getElementById("modal-doc-hora-fin").value = "20:30";
+      setDaySelectorDays("pills-modal-nuevo-dias", "modal-doc-dias-preset", "modal-doc-dias", "Lunes a Viernes");
       modalNuevo.classList.add("open");
     });
   }
@@ -1182,6 +1364,8 @@ function setupEditarDoctorModal() {
   const btnCerrar = document.getElementById("btn-cerrar-editar-doctor");
   const form = document.getElementById("form-editar-doctor");
 
+  setupDaySelector("pills-modal-editar-dias", "edit-doc-dias-preset", "edit-doc-dias");
+
   if (btnCerrar && modal) {
     btnCerrar.addEventListener("click", () => modal.classList.remove("open"));
   }
@@ -1206,6 +1390,7 @@ function setupEditarDoctorModal() {
           especialidad: esp,
           consultorio,
           dias,
+          dias_indices: parseDiasIndices(dias),
           horario_inicio: hInicio,
           horario_fin: hFin
         };
@@ -1237,7 +1422,7 @@ window.abrirEditarDoctor = function(id) {
   setInputVal("edit-doc-nombre", m.nombre);
   setInputVal("edit-doc-especialidad", m.especialidad || "");
   setInputVal("edit-doc-consultorio", m.consultorio || m.consultorio_asignado || 1);
-  setInputVal("edit-doc-dias", m.dias || "Lunes a Viernes");
+  setDaySelectorDays("pills-modal-editar-dias", "edit-doc-dias-preset", "edit-doc-dias", m.dias || "Lunes a Viernes");
   setInputVal("edit-doc-hora-inicio", m.horario_inicio ? m.horario_inicio.substring(0, 5) : "08:30");
   setInputVal("edit-doc-hora-fin", m.horario_fin ? m.horario_fin.substring(0, 5) : "20:30");
 

@@ -371,9 +371,26 @@
             <label for="input-medico-consultorio">Gabinete / Consultorio (1 a 6)</label>
             <input type="number" id="input-medico-consultorio" min="1" max="6" value="1">
           </div>
-          <div class="form-group">
-            <label for="input-medico-dias">Días de atención</label>
-            <input type="text" id="input-medico-dias" placeholder="Ej: Lunes a Viernes" value="Lunes a Viernes">
+          <div class="form-group full-width day-selector-group">
+            <label for="input-medico-dias-preset">Días de atención</label>
+            <select id="input-medico-dias-preset" class="dias-preset-select">
+              <option value="1,2,3,4,5" selected>Lunes a Viernes (Semana laboral)</option>
+              <option value="1,2,3,4,5,6">Lunes a Sábado</option>
+              <option value="1,3,5">Lunes, Miércoles y Viernes</option>
+              <option value="2,4">Martes y Jueves</option>
+              <option value="1,2,3,4">Lunes a Jueves</option>
+              <option value="custom">Personalizado (seleccionar días)</option>
+            </select>
+            <div class="day-pills" id="pills-card-dias">
+              <button type="button" class="day-pill active" data-day="1">Lun</button>
+              <button type="button" class="day-pill active" data-day="2">Mar</button>
+              <button type="button" class="day-pill active" data-day="3">Mié</button>
+              <button type="button" class="day-pill active" data-day="4">Jue</button>
+              <button type="button" class="day-pill active" data-day="5">Vie</button>
+              <button type="button" class="day-pill" data-day="6">Sáb</button>
+              <button type="button" class="day-pill" data-day="0">Dom</button>
+            </div>
+            <input type="hidden" id="input-medico-dias" value="Lunes a Viernes">
           </div>
           <div class="form-group">
             <label for="input-medico-hora-inicio">Hora inicio</label>
@@ -700,9 +717,26 @@
           <label for="modal-doc-consultorio">Gabinete / Consultorio (1 a 6)</label>
           <input type="number" id="modal-doc-consultorio" min="1" max="6" value="1">
         </div>
-        <div class="form-group full-width">
-          <label for="modal-doc-dias">Días de Atención</label>
-          <input type="text" id="modal-doc-dias" placeholder="Lunes a Viernes o Lun, Mié, Vie" value="Lunes a Viernes">
+        <div class="form-group full-width day-selector-group">
+          <label for="modal-doc-dias-preset">Días de Atención (Menú y selección)</label>
+          <select id="modal-doc-dias-preset" class="dias-preset-select">
+            <option value="1,2,3,4,5" selected>Lunes a Viernes (Semana laboral)</option>
+            <option value="1,2,3,4,5,6">Lunes a Sábado</option>
+            <option value="1,3,5">Lunes, Miércoles y Viernes</option>
+            <option value="2,4">Martes y Jueves</option>
+            <option value="1,2,3,4">Lunes a Jueves</option>
+            <option value="custom">Personalizado (seleccionar días)</option>
+          </select>
+          <div class="day-pills" id="pills-modal-nuevo-dias">
+            <button type="button" class="day-pill active" data-day="1">Lun</button>
+            <button type="button" class="day-pill active" data-day="2">Mar</button>
+            <button type="button" class="day-pill active" data-day="3">Mié</button>
+            <button type="button" class="day-pill active" data-day="4">Jue</button>
+            <button type="button" class="day-pill active" data-day="5">Vie</button>
+            <button type="button" class="day-pill" data-day="6">Sáb</button>
+            <button type="button" class="day-pill" data-day="0">Dom</button>
+          </div>
+          <input type="hidden" id="modal-doc-dias" value="Lunes a Viernes">
         </div>
         <div class="form-group">
           <label for="modal-doc-hora-inicio">Hora Inicio</label>
@@ -742,9 +776,26 @@
           <label for="edit-doc-consultorio">Gabinete / Consultorio (1 a 6)</label>
           <input type="number" id="edit-doc-consultorio" min="1" max="6" value="1">
         </div>
-        <div class="form-group full-width">
-          <label for="edit-doc-dias">Días de Atención</label>
-          <input type="text" id="edit-doc-dias" placeholder="Lunes a Viernes o Lun, Mié, Vie" value="Lunes a Viernes">
+        <div class="form-group full-width day-selector-group">
+          <label for="edit-doc-dias-preset">Días de Atención (Menú y selección)</label>
+          <select id="edit-doc-dias-preset" class="dias-preset-select">
+            <option value="1,2,3,4,5">Lunes a Viernes (Semana laboral)</option>
+            <option value="1,2,3,4,5,6">Lunes a Sábado</option>
+            <option value="1,3,5">Lunes, Miércoles y Viernes</option>
+            <option value="2,4">Martes y Jueves</option>
+            <option value="1,2,3,4">Lunes a Jueves</option>
+            <option value="custom">Personalizado (seleccionar días)</option>
+          </select>
+          <div class="day-pills" id="pills-modal-editar-dias">
+            <button type="button" class="day-pill active" data-day="1">Lun</button>
+            <button type="button" class="day-pill active" data-day="2">Mar</button>
+            <button type="button" class="day-pill active" data-day="3">Mié</button>
+            <button type="button" class="day-pill active" data-day="4">Jue</button>
+            <button type="button" class="day-pill active" data-day="5">Vie</button>
+            <button type="button" class="day-pill" data-day="6">Sáb</button>
+            <button type="button" class="day-pill" data-day="0">Dom</button>
+          </div>
+          <input type="hidden" id="edit-doc-dias" value="Lunes a Viernes">
         </div>
         <div class="form-group">
           <label for="edit-doc-hora-inicio">Hora Inicio</label>
