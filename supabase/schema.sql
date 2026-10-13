@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.clinica_doctores (
     numero_colegiado VARCHAR(30) UNIQUE NOT NULL,
     especialidad VARCHAR(50) NOT NULL CHECK (especialidad IN ('General', 'Implante', 'Ortodoncia', 'Cirugía')),
     consultorio_asignado INT CHECK (consultorio_asignado BETWEEN 1 AND 6),
+    dias_atencion VARCHAR(100) DEFAULT 'Lunes a Viernes',
     horario_inicio TIME DEFAULT '09:00:00',
     horario_fin TIME DEFAULT '20:00:00',
     activo BOOLEAN DEFAULT TRUE

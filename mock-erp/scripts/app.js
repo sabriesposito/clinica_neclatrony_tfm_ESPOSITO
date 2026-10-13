@@ -1447,14 +1447,23 @@ async function insertDoctorToSupabase(doc) {
       consultorio_asignado: doc.consultorio || 1,
       horario_inicio: (doc.horario_inicio || "08:30:00").substring(0, 5) + ":00",
       horario_fin: (doc.horario_fin || "20:30:00").substring(0, 5) + ":00",
+      dias_atencion: doc.dias || "Lunes a Viernes",
       activo: true
     };
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/clinica_doctores`, {
+    let res = await fetch(`${SUPABASE_URL}/rest/v1/clinica_doctores`, {
       method: "POST",
       headers,
       body: JSON.stringify(payload)
     });
+    if (!res.ok) {
+      delete payload.dias_atencion;
+      res = await fetch(`${SUPABASE_URL}/rest/v1/clinica_doctores`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload)
+      });
+    }
     if (res.ok) {
       console.log("[Sync Doctor -> Supabase] Doctor insertado correctamente en Supabase:", doc.nombre);
     }
@@ -1478,16 +1487,25 @@ async function syncDoctorToSupabase(doc) {
       especialidad: doc.especialidad,
       consultorio_asignado: doc.consultorio,
       horario_inicio: (doc.horario_inicio || "08:30").substring(0, 5) + ":00",
-      horario_fin: (doc.horario_fin || "20:30").substring(0, 5) + ":00"
+      horario_fin: (doc.horario_fin || "20:30").substring(0, 5) + ":00",
+      dias_atencion: doc.dias || "Lunes a Viernes"
     };
 
     const cleanName = doc.nombre.replace(/^(Dr\.|Dra\.)\s*/, '');
     const url = `${SUPABASE_URL}/rest/v1/clinica_doctores?nombre_completo=ilike.*${encodeURIComponent(cleanName)}*`;
-    const res = await fetch(url, {
+    let res = await fetch(url, {
       method: "PATCH",
       headers,
       body: JSON.stringify(payload)
     });
+    if (!res.ok) {
+      delete payload.dias_atencion;
+      res = await fetch(url, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(payload)
+      });
+    }
     const updated = await res.json();
     if (!Array.isArray(updated) || updated.length === 0) {
       await insertDoctorToSupabase(doc);
@@ -1794,7 +1812,7 @@ async function fetchDoctoresFromSupabase() {
         consultorio: rd.consultorio_asignado || 1,
         horario_inicio: rd.horario_inicio || "08:30:00",
         horario_fin: rd.horario_fin || "20:30:00",
-        dias: "Lunes a Viernes"
+        dias: rd.dias_atencion || (idx >= 0 && localDocs[idx].dias ? localDocs[idx].dias : "Lunes a Viernes")
       };
 
       if (idx >= 0) {
