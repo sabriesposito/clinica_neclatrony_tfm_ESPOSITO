@@ -625,6 +625,8 @@ async function syncCitaToSupabase(data) {
     const fechaLimpia = (data.fecha || "").replace(/[^0-9-]/g, "") || new Date().toISOString().split("T")[0];
     const horaLimpia = (data.hora || "10:00").length === 5 ? `${data.hora}:00` : "10:00:00";
     const startIso = `${fechaLimpia}T${horaLimpia}Z`;
+    const duracionMin = 30; // 30 minutos por defecto
+    const endIso = new Date(new Date(startIso).getTime() + duracionMin * 60 * 1000).toISOString();
 
     // 5. Insertar cita en Supabase con canal PRESENCIAL
     const nuevaCita = {
@@ -634,7 +636,7 @@ async function syncCitaToSupabase(data) {
       especialidad: data.especialidad || "General",
       consultorio_num: doctor.consultorio_asignado || 1,
       fecha_hora_inicio: startIso,
-      fecha_hora_fin: startIso,
+      fecha_hora_fin: endIso,
       estado: "PROGRAMADA",
       canal_origen: "PRESENCIAL"
     };
