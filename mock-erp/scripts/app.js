@@ -107,7 +107,7 @@ function renderDashboard() {
   HORAS.forEach(hora => {
     const citasEnHora = citasHoy.filter(c => c.hora === hora);
     const activa = citasEnHora.find(c => (c.estado || "").toLowerCase().trim() !== "cancelada");
-    const cita = activa || citasEnHora[0];
+    const cita = activa;
     const row = document.createElement("div");
     row.className = "agenda-row";
     if (cita) {
@@ -284,6 +284,7 @@ function renderAgendaView() {
     else if (isTomorrow) tag = " (Mañana)";
 
     const dayCitas = windowCitas.filter(c => c.fecha === dateStr);
+    const dayCitasActivas = dayCitas.filter(c => (c.estado || "").toLowerCase().trim() !== "cancelada");
     const isBloqueada = isClinicaBloqueada(dateStr);
     const isDocWorkingToday = doctorObj ? doctorAtiendeEnFecha(doctorObj, dateStr) : true;
 
@@ -296,8 +297,8 @@ function renderAgendaView() {
           <div class="agenda-day-title">${dayName}${tag}</div>
           <div class="agenda-day-date">${dayNum} ${monthName} ${dObj.getUTCFullYear()}</div>
         </div>
-        <span class="badge ${dayCitas.length > 0 ? 'badge-confirmada' : 'badge-completada'}" style="font-size:11px">
-          ${dayCitas.length} cita${dayCitas.length !== 1 ? 's' : ''}
+        <span class="badge ${dayCitasActivas.length > 0 ? 'badge-confirmada' : 'badge-completada'}" style="font-size:11px">
+          ${dayCitasActivas.length} cita${dayCitasActivas.length !== 1 ? 's' : ''}
         </span>
       </div>
       <div class="agenda-day-slots">
@@ -319,13 +320,12 @@ function renderAgendaView() {
         </div>
       `;
 
-      if (dayCitas.length > 0) {
-        dayCitas.forEach(cita => {
+      if (dayCitasActivas.length > 0) {
+        dayCitasActivas.forEach(cita => {
           const rawEstado = (cita.estado || "").toLowerCase().trim();
           const isConfirmada = rawEstado === "confirmada";
-          const isCancelada = rawEstado === "cancelada";
-          const normClass = isConfirmada ? "confirmada" : (isCancelada ? "cancelada" : (rawEstado === "programada" ? "programada" : "pendiente"));
-          const estadoLabel = rawEstado === "programada" ? "Programada" : (isConfirmada ? "Confirmada" : (isCancelada ? "Cancelada" : "Pendiente"));
+          const normClass = isConfirmada ? "confirmada" : (rawEstado === "programada" ? "programada" : "pendiente");
+          const estadoLabel = rawEstado === "programada" ? "Programada" : (isConfirmada ? "Confirmada" : "Pendiente");
 
           colHtml += `
             <div class="slot-card ${normClass}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
@@ -336,8 +336,8 @@ function renderAgendaView() {
                 </div>
                 <div class="slot-row-actions">
                   <span class="badge badge-${normClass}">${estadoLabel}</span>
-                  ${(!isConfirmada && !isCancelada) ? `<button class="btn-slot-action btn-slot-confirm" onclick="confirmarCita('${cita.id}')" title="Confirmar asistencia">✓</button>` : ''}
-                  ${!isCancelada ? `<button class="btn-slot-action btn-slot-cancel" onclick="cancelarCita('${cita.id}')" title="Cancelar cita">✕</button>` : ''}
+                  ${(!isConfirmada) ? `<button class="btn-slot-action btn-slot-confirm" onclick="confirmarCita('${cita.id}')" title="Confirmar asistencia">✓</button>` : ''}
+                  <button class="btn-slot-action btn-slot-cancel" onclick="cancelarCita('${cita.id}')" title="Cancelar cita">✕</button>
                 </div>
               </div>
               <div class="slot-row-sub">
@@ -349,21 +349,13 @@ function renderAgendaView() {
       }
     } else {
       HORAS.forEach(hora => {
-        const citasHora = dayCitas.filter(c => c.hora === hora);
+        const citasHora = dayCitasActivas.filter(c => c.hora === hora);
         if (citasHora.length > 0) {
-          // Ordenar: primero las citas activas (programada, confirmada, pendiente) y luego las canceladas
-          citasHora.sort((a, b) => {
-            const isCancA = (a.estado || "").toLowerCase().trim() === "cancelada";
-            const isCancB = (b.estado || "").toLowerCase().trim() === "cancelada";
-            return (isCancA ? 1 : 0) - (isCancB ? 1 : 0);
-          });
-
           citasHora.forEach(cita => {
             const rawEstado = (cita.estado || "").toLowerCase().trim();
             const isConfirmada = rawEstado === "confirmada";
-            const isCancelada = rawEstado === "cancelada";
-            const normClass = isConfirmada ? "confirmada" : (isCancelada ? "cancelada" : (rawEstado === "programada" ? "programada" : "pendiente"));
-            const estadoLabel = rawEstado === "programada" ? "Programada" : (isConfirmada ? "Confirmada" : (isCancelada ? "Cancelada" : "Pendiente"));
+            const normClass = isConfirmada ? "confirmada" : (rawEstado === "programada" ? "programada" : "pendiente");
+            const estadoLabel = rawEstado === "programada" ? "Programada" : (isConfirmada ? "Confirmada" : "Pendiente");
 
             colHtml += `
               <div class="slot-card ${normClass}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
@@ -374,8 +366,8 @@ function renderAgendaView() {
                   </div>
                   <div class="slot-row-actions">
                     <span class="badge badge-${normClass}">${estadoLabel}</span>
-                    ${(!isConfirmada && !isCancelada) ? `<button class="btn-slot-action btn-slot-confirm" onclick="confirmarCita('${cita.id}')" title="Confirmar asistencia">✓</button>` : ''}
-                    ${!isCancelada ? `<button class="btn-slot-action btn-slot-cancel" onclick="cancelarCita('${cita.id}')" title="Cancelar cita">✕</button>` : ''}
+                    ${(!isConfirmada) ? `<button class="btn-slot-action btn-slot-confirm" onclick="confirmarCita('${cita.id}')" title="Confirmar asistencia">✓</button>` : ''}
+                    <button class="btn-slot-action btn-slot-cancel" onclick="cancelarCita('${cita.id}')" title="Cancelar cita">✕</button>
                   </div>
                 </div>
                 <div class="slot-row-sub">
@@ -384,17 +376,6 @@ function renderAgendaView() {
               </div>
             `;
           });
-
-          // Si todas las citas de esa hora están canceladas, mostrar también el botón de disponible
-          const tieneActiva = citasHora.some(c => (c.estado || "").toLowerCase().trim() !== "cancelada");
-          if (!tieneActiva) {
-            colHtml += `
-              <button class="slot-empty-btn" onclick="irANuevaCita('${dateStr}','${hora}')" style="margin-top:2px">
-                <span>+ ${hora}</span>
-                <span style="font-weight:600">Disponible</span>
-              </button>
-            `;
-          }
         } else {
           colHtml += `
             <button class="slot-empty-btn" onclick="irANuevaCita('${dateStr}','${hora}')">
