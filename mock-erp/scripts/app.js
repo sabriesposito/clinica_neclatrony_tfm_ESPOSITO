@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupConfiguracionPage();
   fetchPacientesFromSupabase();
   fetchDoctoresFromSupabase();
-  fetchCitasFromSupabase();
+  // fetchCitasFromSupabase(); // Desactivado: las citas en la web ahora se registran exclusivamente a través de la UI (UiPath RPA o recepcionista)
 
   const badge = document.getElementById("badge-citas-hoy");
   const cantHoy = getCitasHoy().length;
