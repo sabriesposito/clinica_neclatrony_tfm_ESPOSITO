@@ -88,9 +88,19 @@ function renderTopbarDate() {
 // ── Dashboard ───────────────────────────────────────────────────────────────
 function renderDashboard() {
   const citas = getCitas();
-  const hoyStr = new Date().toISOString().split("T")[0];
+  const dNow = new Date();
+  const hoyStr = dNow.toISOString().split("T")[0];
   const citasHoy = citas.filter(c => c.fecha === hoyStr);
   const pacientes = getPacientes();
+
+  const elFecha = document.getElementById("dashboard-agenda-fecha");
+  if (elFecha) {
+    const diaSem = capitalize(dNow.toLocaleDateString("es-ES", { weekday: "long" }));
+    const diaNum = dNow.getDate();
+    const mes = capitalize(dNow.toLocaleDateString("es-ES", { month: "long" }));
+    const anio = dNow.getFullYear();
+    elFecha.textContent = `— ${diaSem}, ${diaNum} de ${mes} de ${anio}`;
+  }
 
   setEl("stat-citas-hoy", citasHoy.length);
   setEl("stat-pacientes", pacientes.length);
