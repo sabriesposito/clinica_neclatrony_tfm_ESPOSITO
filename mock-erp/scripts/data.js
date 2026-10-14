@@ -43,16 +43,7 @@ const hoy = new Date();
 const fmt = (d) => d.toISOString().split("T")[0];
 const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
 
-const INITIAL_CITAS = [
-  { id: "C001", pacienteId: "P001", pacienteNombre: "Ana García Ruiz", tratamiento: "Limpieza dental", fecha: fmt(hoy), hora: "09:00", medico: "Dra. Martínez", estado: "confirmada", notas: "" },
-  { id: "C002", pacienteId: "P002", pacienteNombre: "Carlos Martínez Pérez", tratamiento: "Ortodoncia – Revisión", fecha: fmt(hoy), hora: "10:30", medico: "Dr. Rodríguez", estado: "pendiente", notas: "Paciente con brackets desde hace 8 meses" },
-  { id: "C003", pacienteId: "P003", pacienteNombre: "Laura Sánchez Torres", tratamiento: "Blanqueamiento dental", fecha: fmt(hoy), hora: "12:00", medico: "Dra. López", estado: "confirmada", notas: "" },
-  { id: "C004", pacienteId: "P004", pacienteNombre: "Miguel López Fernández", tratamiento: "Implante dental", fecha: fmt(addDays(hoy, 1)), hora: "09:30", medico: "Dr. Sánchez", estado: "pendiente", notas: "Segunda sesión" },
-  { id: "C005", pacienteId: "P005", pacienteNombre: "Sofía Ruiz Morales", tratamiento: "Revisión general", fecha: fmt(addDays(hoy, 1)), hora: "11:00", medico: "Dra. Martínez", estado: "confirmada", notas: "" },
-  { id: "C006", pacienteId: "P001", pacienteNombre: "Ana García Ruiz", tratamiento: "Radiografía panorámica", fecha: fmt(addDays(hoy, 2)), hora: "16:00", medico: "Dra. Martínez", estado: "pendiente", notas: "" },
-  { id: "C007", pacienteId: "P003", pacienteNombre: "Laura Sánchez Torres", tratamiento: "Empaste", fecha: fmt(addDays(hoy, -1)), hora: "10:00", medico: "Dra. López", estado: "completada", notas: "" },
-  { id: "C008", pacienteId: "P002", pacienteNombre: "Carlos Martínez Pérez", tratamiento: "Limpieza dental", fecha: fmt(addDays(hoy, -2)), hora: "09:00", medico: "Dr. Rodríguez", estado: "cancelada", notas: "Canceló por viaje" },
-];
+const INITIAL_CITAS = [];
 
 // ── Storage ────────────────────────────────────────────────────────────────
 
@@ -62,6 +53,12 @@ function initData() {
   }
   if (!localStorage.getItem("neclatrony_citas")) {
     localStorage.setItem("neclatrony_citas", JSON.stringify(INITIAL_CITAS));
+  }
+  if (!localStorage.getItem("neclatrony_citas_clean_v1")) {
+    const existing = JSON.parse(localStorage.getItem("neclatrony_citas") || "[]");
+    const soloReales = existing.filter(c => c && c.id && !c.id.startsWith("C00"));
+    localStorage.setItem("neclatrony_citas", JSON.stringify(soloReales));
+    localStorage.setItem("neclatrony_citas_clean_v1", "1");
   }
   if (!localStorage.getItem("neclatrony_medicos_v4")) {
     const existing = JSON.parse(localStorage.getItem("neclatrony_medicos") || "[]");
@@ -123,7 +120,7 @@ function generateId(prefix) {
 
 function getCitasHoy() {
   const hoyStr = fmt(new Date());
-  return getCitas().filter(c => c.fecha === hoyStr);
+  return getCitas().filter(c => c.fecha === hoyStr && (c.estado || "").toLowerCase().trim() !== "cancelada");
 }
 
 function getSlotsBloqueados(fecha) {

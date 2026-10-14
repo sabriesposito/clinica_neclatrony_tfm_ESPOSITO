@@ -25,7 +25,11 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchCitasFromSupabase();
 
   const badge = document.getElementById("badge-citas-hoy");
-  if (badge) badge.textContent = getCitasHoy().length;
+  const cantHoy = getCitasHoy().length;
+  if (badge) {
+    badge.textContent = cantHoy;
+    badge.style.display = cantHoy > 0 ? "inline-flex" : "none";
+  }
 
   // Mobile sidebar toggle
   const btnMenu = document.getElementById("btn-menu");
@@ -102,10 +106,23 @@ function renderDashboard() {
     elFecha.textContent = `— ${diaSem}, ${diaNum} de ${mes} de ${anio}`;
   }
 
-  setEl("stat-citas-hoy", citasHoy.length);
-  setEl("stat-pacientes", pacientes.length);
-  setEl("stat-confirmadas", citasHoy.filter(c => c.estado === "confirmada").length);
-  setEl("stat-pendientes", citas.filter(c => c.estado === "pendiente").length);
+  const citasHoyActivas = citasHoy.filter(c => (c.estado || "").toLowerCase().trim() !== "cancelada");
+  const confirmadasHoy = citasHoyActivas.filter(c => (c.estado || "").toLowerCase().trim() === "confirmada").length;
+  const pendientesHoy = citasHoyActivas.filter(c => {
+    const s = (c.estado || "").toLowerCase().trim();
+    return s === "pendiente" || s === "programada";
+  }).length;
+
+  setEl("stat-citas-hoy", citasHoyActivas.length);
+  setEl("stat-pacientes", pacientes.filter(p => p.activo !== false).length);
+  setEl("stat-confirmadas", confirmadasHoy);
+  setEl("stat-pendientes", pendientesHoy);
+
+  const badge = document.getElementById("badge-citas-hoy");
+  if (badge) {
+    badge.textContent = citasHoyActivas.length;
+    badge.style.display = citasHoyActivas.length > 0 ? "inline-flex" : "none";
+  }
 
   // Agenda del día en dashboard
   const container = document.getElementById("dashboard-agenda");
