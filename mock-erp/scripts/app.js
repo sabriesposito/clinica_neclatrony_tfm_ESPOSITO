@@ -572,8 +572,12 @@ function guardarCita() {
 
   const msg = `Cita registrada correctamente para ${nombre} el ${formatFecha(fecha)} a las ${hora}.`;
   showAlert("alert-form", "success", msg);
-  document.getElementById("mensaje-confirmacion").textContent = msg;
-  document.getElementById("mensaje-confirmacion").dataset.citaId = nuevaCita.id;
+  const elConfirm = document.getElementById("mensaje-confirmacion");
+  if (elConfirm) {
+    elConfirm.textContent = msg;
+    elConfirm.dataset.citaId = nuevaCita.id;
+    elConfirm.style.display = "block";
+  }
 
   limpiarFormCita(false);
   renderDashboard();
