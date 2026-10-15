@@ -132,7 +132,7 @@
                   <ui:MaximizeWindow Window="{x:Null}" DisplayName="Maximize Window" sap:VirtualizedContainerService.HintSize="422,30" sap2010:WorkflowViewState.IdRef="MaximizeWindow_1" />
 
                   <!-- Navegación a la pestaña Nueva Cita -->
-                  <ui:Click AlterIfDisabled="{x:Null}" DelayBefore="{x:Null}" DelayMS="{x:Null}" SendWindowMessages="{x:Null}" SimulateClick="True" ClickType="CLICK_SINGLE" DisplayName="Click 'Nueva Cita'" sap:VirtualizedContainerService.HintSize="422,107" sap2010:WorkflowViewState.IdRef="Click_1" KeyModifiers="None" MouseButton="BTN_LEFT">
+                  <ui:Click AlterIfDisabled="{x:Null}" DelayBefore="2000" DelayMS="{x:Null}" SendWindowMessages="{x:Null}" SimulateClick="True" ClickType="CLICK_SINGLE" DisplayName="Click 'Nueva Cita'" sap:VirtualizedContainerService.HintSize="422,107" sap2010:WorkflowViewState.IdRef="Click_1" KeyModifiers="None" MouseButton="BTN_LEFT">
                     <ui:Click.CursorPosition>
                       <ui:CursorPosition Position="Center">
                         <ui:CursorPosition.OffsetX>0</ui:CursorPosition.OffsetX>
@@ -140,8 +140,8 @@
                       </ui:CursorPosition>
                     </ui:Click.CursorPosition>
                     <ui:Click.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="449d6b6b-5494-4105-b3d2-bb089dd1ea87" InformativeScreenshot="nav_item" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='btn-nueva-cita' tag='BUTTON' /&gt;" WaitForReady="COMPLETE">
-                        <ui:Target.TimeoutMS>10000</ui:Target.TimeoutMS>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="449d6b6b-5494-4105-b3d2-bb089dd1ea87" InformativeScreenshot="nav_item" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl aaname='*Nueva cita*' tag='*' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>15000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:Click.Target>
                   </ui:Click>
@@ -215,13 +215,31 @@
                   </ui:TypeInto>
 
                   <!-- Hora Cita -->
-                  <ui:TypeInto AlterIfDisabled="{x:Null}" ClickBeforeTyping="{x:Null}" DelayBefore="{x:Null}" DelayBetweenKeys="{x:Null}" DelayMS="{x:Null}" EmptyField="True" SendWindowMessages="{x:Null}" SimulateType="True" Activate="True" DisplayName="Type Into 'input-hora-cita'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="TypeInto_6" Text="[strHora]">
-                    <ui:TypeInto.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="3649ea42-1bae-4660-b402-086d161c483f" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-hora-cita' tag='INPUT' /&gt;" WaitForReady="COMPLETE">
+                  <ui:SelectItem AlterIfDisabled="{x:Null}" ContinueOnError="{x:Null}" DelayAfter="{x:Null}" DelayBefore="{x:Null}" DisplayName="Select Item 'input-hora-cita'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="SelectItem_2" Item="[strHora]">
+                    <ui:SelectItem.Items>
+                      <scg:List x:TypeArguments="x:String" Capacity="16">
+                        <x:String>09:00</x:String>
+                        <x:String>09:30</x:String>
+                        <x:String>10:00</x:String>
+                        <x:String>10:30</x:String>
+                        <x:String>11:00</x:String>
+                        <x:String>11:30</x:String>
+                        <x:String>12:00</x:String>
+                        <x:String>12:30</x:String>
+                        <x:String>16:00</x:String>
+                        <x:String>16:30</x:String>
+                        <x:String>17:00</x:String>
+                        <x:String>17:30</x:String>
+                        <x:String>18:00</x:String>
+                        <x:String>18:30</x:String>
+                      </scg:List>
+                    </ui:SelectItem.Items>
+                    <ui:SelectItem.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="3649ea42-1bae-4660-b402-086d161c483f" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='input-hora-cita' tag='SELECT' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
                       </ui:Target>
-                    </ui:TypeInto.Target>
-                  </ui:TypeInto>
+                    </ui:SelectItem.Target>
+                  </ui:SelectItem>
 
                   <!-- Botón Guardar Cita -->
                   <ui:Click AlterIfDisabled="{x:Null}" DelayBefore="{x:Null}" DelayMS="{x:Null}" SendWindowMessages="{x:Null}" SimulateClick="True" ClickType="CLICK_SINGLE" DisplayName="Click 'btn-guardar-cita'" sap:VirtualizedContainerService.HintSize="422,107" sap2010:WorkflowViewState.IdRef="Click_2" KeyModifiers="None" MouseButton="BTN_LEFT">
@@ -244,7 +262,7 @@
                       <OutArgument x:TypeArguments="x:String">[strResultadoCitaId]</OutArgument>
                     </ui:GetAttribute.Result>
                     <ui:GetAttribute.Target>
-                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="62814a6e-dfe0-437f-8f89-216a0f4faa55" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='mensaje-confirmacion' tag='P' /&gt;" WaitForReady="COMPLETE">
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="62814a6e-dfe0-437f-8f89-216a0f4faa55" Selector="&lt;html app='chrome.exe' title='*Neclatrony*' /&gt;&lt;webctrl id='mensaje-confirmacion' /&gt;" WaitForReady="COMPLETE">
                         <ui:Target.TimeoutMS>10000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:GetAttribute.Target>

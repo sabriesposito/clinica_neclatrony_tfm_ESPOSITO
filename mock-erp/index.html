@@ -80,7 +80,7 @@
         Agenda
         <span class="nav-badge" id="badge-citas-hoy">–</span>
       </div>
-      <div class="nav-item" data-page="nueva-cita">
+      <div class="nav-item" id="nav-btn-nueva-cita" data-page="nueva-cita">
         <span class="nav-icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         </span>
@@ -186,7 +186,7 @@
           <p class="page-subtitle" id="agenda-resumen">Vista multi-día con panel de control</p>
         </div>
         <div style="display:flex;gap:var(--sp-3);align-items:center">
-          <button class="btn btn-primary" onclick="navigateTo('nueva-cita')">
+          <button class="btn btn-primary" id="btn-agenda-nueva-cita" onclick="navigateTo('nueva-cita')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Nueva cita
           </button>
@@ -273,7 +273,7 @@
         </div>
 
         <!-- UiPath confirmation target -->
-        <div id="mensaje-confirmacion" data-cita-id="" style="display:none"></div>
+        <p id="mensaje-confirmacion" data-cita-id="" style="display:none"></p>
 
         <form id="form-nueva-cita" autocomplete="off">
           <h3 style="font-size:13px;font-weight:var(--fw-bold);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--sp-4)">Datos del paciente</h3>
