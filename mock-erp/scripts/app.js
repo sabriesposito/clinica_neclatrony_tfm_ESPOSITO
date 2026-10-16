@@ -506,10 +506,19 @@ function guardarCita() {
   const telefono  = getVal("input-telefono-paciente");
   const email     = getVal("input-email-paciente");
   const tratamiento = getVal("select-tratamiento");
-  const fecha     = getVal("input-fecha-cita");
+  let fecha       = (getVal("input-fecha-cita") || "").trim();
   const hora      = getVal("input-hora-cita");
   const medico    = getVal("select-medico");
   const notas     = getVal("textarea-notas");
+
+  if (fecha) {
+    if (fecha.includes("/")) {
+      const p = fecha.split("/");
+      if (p.length === 3) fecha = `${p[2].trim()}-${p[1].trim().padStart(2, '0')}-${p[0].trim().padStart(2, '0')}`;
+    } else if (/^\d{8}$/.test(fecha)) {
+      fecha = `${fecha.substring(4, 8)}-${fecha.substring(2, 4)}-${fecha.substring(0, 2)}`;
+    }
+  }
 
   if (!nombre || !tratamiento || !fecha || !hora) {
     showAlert("alert-form", "error", "Completa los campos obligatorios: nombre, tratamiento, fecha y hora.");
