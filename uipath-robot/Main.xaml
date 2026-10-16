@@ -239,6 +239,25 @@
                         <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
                       </ui:Target>
                     </ui:SelectItem.Target>
+                  <!-- Médico Asignado -->
+                  <ui:SelectItem AlterIfDisabled="{x:Null}" ContinueOnError="{x:Null}" DelayAfter="{x:Null}" DelayBefore="{x:Null}" DisplayName="Select Item 'select-medico'" sap:VirtualizedContainerService.HintSize="422,135" sap2010:WorkflowViewState.IdRef="SelectItem_3" Item="[strDoctor]">
+                    <ui:SelectItem.Items>
+                      <scg:List x:TypeArguments="x:String" Capacity="16">
+                        <x:String>Dra. Martínez</x:String>
+                        <x:String>Dr. Rodríguez</x:String>
+                        <x:String>Dra. López</x:String>
+                        <x:String>Dr. Sánchez</x:String>
+                        <x:String>Dra. García</x:String>
+                        <x:String>Dr. Fernández</x:String>
+                        <x:String>Dra. Torres</x:String>
+                        <x:String>Dr. Morales</x:String>
+                      </scg:List>
+                    </ui:SelectItem.Items>
+                    <ui:SelectItem.Target>
+                      <ui:Target ClippingRegion="{x:Null}" Element="{x:Null}" Id="8c7a6e4d-5fe0-437f-8f89-216a0f4faa56" Selector="&lt;html app='chrome.exe' url='*72.61.24.118*' /&gt;&lt;webctrl id='select-medico' tag='SELECT' /&gt;" WaitForReady="COMPLETE">
+                        <ui:Target.TimeoutMS>5000</ui:Target.TimeoutMS>
+                      </ui:Target>
+                    </ui:SelectItem.Target>
                   </ui:SelectItem>
 
                   <!-- Botón Guardar Cita -->
