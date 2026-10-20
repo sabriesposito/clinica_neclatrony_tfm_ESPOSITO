@@ -1793,13 +1793,9 @@ async function fetchPacientesFromSupabase() {
     const remotePacs = await res.json();
     if (!Array.isArray(remotePacs)) return;
 
-    const localPacs = getPacientes();
-    let updated = false;
-
-    for (const rp of remotePacs) {
-      const idx = localPacs.findIndex(p => p.dni === rp.dni);
+    const finalPacs = remotePacs.map(rp => {
       const nombreCompleto = `${rp.nombre} ${rp.apellidos || ''}`.trim();
-      const pObj = {
+      return {
         id: rp.id,
         dni: rp.dni,
         nombre: nombreCompleto,
@@ -1809,21 +1805,11 @@ async function fetchPacientesFromSupabase() {
         activo: rp.activo !== false,
         historial: []
       };
+    });
 
-      if (idx >= 0) {
-        localPacs[idx] = { ...localPacs[idx], ...pObj };
-        updated = true;
-      } else {
-        localPacs.push(pObj);
-        updated = true;
-      }
-    }
-
-    if (updated) {
-      savePacientes(localPacs);
-      renderPacientes();
-      renderDashboard();
-    }
+    savePacientes(finalPacs);
+    renderPacientes();
+    renderDashboard();
   } catch(e) {
     console.warn("[Sync Supabase -> ERP] Error fetching pacientes:", e);
   }
@@ -1843,36 +1829,21 @@ async function fetchDoctoresFromSupabase() {
     const remoteDocs = await res.json();
     if (!Array.isArray(remoteDocs) || remoteDocs.length === 0) return;
 
-    const localDocs = getMedicos();
-    let updated = false;
+    const finalDocs = remoteDocs.map(rd => ({
+      id: rd.id,
+      nombre: rd.nombre_completo,
+      especialidad: rd.especialidad || "General",
+      consultorio: rd.consultorio_asignado || 1,
+      horario_inicio: rd.horario_inicio || "09:00:00",
+      horario_fin: rd.horario_fin || "20:00:00",
+      dias: rd.dias_atencion || "Lunes a Viernes",
+      dias_indices: [1, 2, 3, 4, 5]
+    }));
 
-    for (const rd of remoteDocs) {
-      const idx = localDocs.findIndex(d => d.nombre.toLowerCase() === (rd.nombre_completo || "").toLowerCase());
-      const dObj = {
-        id: rd.id,
-        nombre: rd.nombre_completo,
-        especialidad: rd.especialidad || "Odontología General",
-        consultorio: rd.consultorio_asignado || 1,
-        horario_inicio: rd.horario_inicio || "08:30:00",
-        horario_fin: rd.horario_fin || "20:30:00",
-        dias: rd.dias_atencion || (idx >= 0 && localDocs[idx].dias ? localDocs[idx].dias : "Lunes a Viernes")
-      };
-
-      if (idx >= 0) {
-        localDocs[idx] = { ...localDocs[idx], ...dObj };
-        updated = true;
-      } else {
-        localDocs.push(dObj);
-        updated = true;
-      }
-    }
-
-    if (updated) {
-      saveMedicos(localDocs);
-      renderDoctores();
-      populateMedicosSelect();
-      populateAgendaDoctorFilter();
-    }
+    saveMedicos(finalDocs);
+    renderDoctores();
+    populateMedicosSelect();
+    populateAgendaDoctorFilter();
   } catch(e) {
     console.warn("[Sync Supabase -> ERP] Error fetching doctores:", e);
   }

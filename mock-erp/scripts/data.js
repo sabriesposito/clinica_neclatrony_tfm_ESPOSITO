@@ -21,17 +21,15 @@ const HORARIOS = [
 ];
 
 const INITIAL_MEDICOS = [
-  { id: "M001", nombre: "Dra. Martínez",  especialidad: "Odontología general · Estética dental", consultorio: 1, dias: "Lunes a Viernes", dias_indices: [1,2,3,4,5], horario_inicio: "09:00:00", horario_fin: "20:00:00" },
-  { id: "M002", nombre: "Dr. Rodríguez",  especialidad: "Ortodoncia · Ortodoncia invisible", consultorio: 5, dias: "Lunes a Viernes", dias_indices: [1,2,3,4,5], horario_inicio: "09:00:00", horario_fin: "20:00:00" },
-  { id: "M003", nombre: "Dra. López",     especialidad: "Estética dental · Blanqueamiento", consultorio: 2, dias: "Lunes a Viernes", dias_indices: [1,2,3,4,5], horario_inicio: "09:00:00", horario_fin: "20:00:00" },
-  { id: "M004", nombre: "Dr. Sánchez",    especialidad: "Cirugía oral · Implantología", consultorio: 4, dias: "Lunes a Viernes", dias_indices: [1,2,3,4,5], horario_inicio: "09:00:00", horario_fin: "20:00:00" },
-  { id: "M005", nombre: "Dra. García",    especialidad: "Periodoncia · Odontología general", consultorio: 1, dias: "Lunes a Jueves", dias_indices: [1,2,3,4], horario_inicio: "08:30:00", horario_fin: "20:30:00" },
-  { id: "M006", nombre: "Dr. Fernández",  especialidad: "Endodoncia · Cirugía oral", consultorio: 3, dias: "Lun, Mié, Vie", dias_indices: [1,3,5], horario_inicio: "08:30:00", horario_fin: "20:30:00" },
-  { id: "M007", nombre: "Dra. Torres",    especialidad: "Odontopediatría", consultorio: 2, dias: "Mar, Jue", dias_indices: [2,4], horario_inicio: "08:30:00", horario_fin: "20:30:00" },
-  { id: "M008", nombre: "Dr. Morales",    especialidad: "Prostodoncia · Prótesis dental", consultorio: 6, dias: "Lunes a Viernes", dias_indices: [1,2,3,4,5], horario_inicio: "09:00:00", horario_fin: "18:00:00" },
+  { id: "M001", nombre: "Dra. Martínez",  especialidad: "General", consultorio: 1, dias: "Lunes a Viernes", dias_indices: [1,2,3,4,5], horario_inicio: "09:00:00", horario_fin: "20:00:00" },
+  { id: "M002", nombre: "Dr. Rodríguez",  especialidad: "Ortodoncia", consultorio: 5, dias: "Lunes a Viernes", dias_indices: [1,2,3,4,5], horario_inicio: "09:00:00", horario_fin: "20:00:00" },
+  { id: "M003", nombre: "Dra. López",     especialidad: "General", consultorio: 2, dias: "Lunes a Viernes", dias_indices: [1,2,3,4,5], horario_inicio: "09:00:00", horario_fin: "20:00:00" },
+  { id: "M004", nombre: "Dr. Sánchez",    especialidad: "Cirugía", consultorio: 4, dias: "Lunes a Viernes", dias_indices: [1,2,3,4,5], horario_inicio: "09:00:00", horario_fin: "20:00:00" },
+  { id: "M005", nombre: "Dr. Morales",    especialidad: "Implante", consultorio: 3, dias: "Lunes a Viernes", dias_indices: [1,2,3,4,5], horario_inicio: "09:00:00", horario_fin: "20:00:00" },
 ];
 
 const INITIAL_PACIENTES = [
+  { id: "P000", nombre: "Sabrina Esposito", dni: "38522432", telefono: "600000000", email: "", fechaNacimiento: "1992-05-10", historial: [] },
   { id: "P001", nombre: "Ana García Ruiz", dni: "12345678A", telefono: "612345678", email: "ana.garcia@email.com", fechaNacimiento: "1985-03-14", historial: [] },
   { id: "P002", nombre: "Carlos Martínez Pérez", dni: "23456789B", telefono: "623456789", email: "carlos.mp@email.com", fechaNacimiento: "1972-07-22", historial: [] },
   { id: "P003", nombre: "Laura Sánchez Torres", dni: "34567890C", telefono: "634567890", email: "lsanchez@email.com", fechaNacimiento: "1990-11-05", historial: [] },
@@ -48,7 +46,7 @@ const INITIAL_CITAS = [];
 // ── Storage ────────────────────────────────────────────────────────────────
 
 function initData() {
-  if (!localStorage.getItem("neclatrony_pacientes")) {
+  if (!localStorage.getItem("neclatrony_pacientes") || !localStorage.getItem("neclatrony_sync_v6")) {
     localStorage.setItem("neclatrony_pacientes", JSON.stringify(INITIAL_PACIENTES));
   }
   if (!localStorage.getItem("neclatrony_citas")) {
@@ -60,26 +58,9 @@ function initData() {
     localStorage.setItem("neclatrony_citas", JSON.stringify(soloReales));
     localStorage.setItem("neclatrony_citas_clean_v1", "1");
   }
-  if (!localStorage.getItem("neclatrony_medicos_v4")) {
-    const existing = JSON.parse(localStorage.getItem("neclatrony_medicos") || "[]");
-    if (existing.length > 0) {
-      const merged = existing.map((m, i) => {
-        const initM = INITIAL_MEDICOS.find(x => x.nombre.toLowerCase() === m.nombre.toLowerCase());
-        return {
-          consultorio: m.consultorio || m.consultorio_asignado || (i % 6 + 1),
-          dias: (initM ? initM.dias : (m.dias || "Lunes a Viernes")),
-          dias_indices: (initM ? initM.dias_indices : (m.dias_indices || [1,2,3,4,5])),
-          horario_inicio: m.horario_inicio || "08:30:00",
-          horario_fin: m.horario_fin || "20:30:00",
-          ...m,
-          dias: (initM && (!m.dias || m.dias === "Lunes a Viernes")) ? initM.dias : (m.dias || "Lunes a Viernes")
-        };
-      });
-      localStorage.setItem("neclatrony_medicos", JSON.stringify(merged));
-    } else {
-      localStorage.setItem("neclatrony_medicos", JSON.stringify(INITIAL_MEDICOS));
-    }
-    localStorage.setItem("neclatrony_medicos_v4", "1");
+  if (!localStorage.getItem("neclatrony_sync_v6")) {
+    localStorage.setItem("neclatrony_medicos", JSON.stringify(INITIAL_MEDICOS));
+    localStorage.setItem("neclatrony_sync_v6", "1");
   }
 }
 
