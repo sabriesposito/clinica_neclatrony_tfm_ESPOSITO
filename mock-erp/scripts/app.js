@@ -525,10 +525,10 @@ function guardarCita() {
     return;
   }
 
-  // Check slot availability
-  const slots = getSlotsBloqueados(fecha);
+  // Check slot availability per doctor (the clinic has 6 chairs/doctors)
+  const slots = getSlotsBloqueados(fecha, medico);
   if (slots.includes(hora)) {
-    showAlert("alert-form", "error", `El horario ${hora} del ${formatFecha(fecha)} ya está ocupado. Selecciona otro horario.`);
+    showAlert("alert-form", "error", `El horario ${hora} del ${formatFecha(fecha)} ya está ocupado con ${medico || 'este profesional'}. Selecciona otro horario.`);
     return;
   }
 

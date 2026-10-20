@@ -123,14 +123,14 @@ function getCitasHoy() {
   return getCitas().filter(c => c.fecha === hoyStr && (c.estado || "").toLowerCase().trim() !== "cancelada");
 }
 
-function getSlotsBloqueados(fecha) {
+function getSlotsBloqueados(fecha, medico) {
   return getCitas()
-    .filter(c => c.fecha === fecha && c.estado !== "cancelada")
+    .filter(c => c.fecha === fecha && c.estado !== "cancelada" && (!medico || (c.medico && c.medico.toLowerCase() === medico.toLowerCase())))
     .map(c => c.hora);
 }
 
-function getSlotsDisponibles(fecha) {
-  const bloqueados = getSlotsBloqueados(fecha);
+function getSlotsDisponibles(fecha, medico) {
+  const bloqueados = getSlotsBloqueados(fecha, medico);
   return HORARIOS.filter(h => !bloqueados.includes(h));
 }
 
