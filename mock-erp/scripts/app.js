@@ -897,12 +897,19 @@ async function syncBajaPacienteToSupabase(id, dni) {
       url = `${SUPABASE_URL}/rest/v1/clinica_pacientes?dni=eq.${dni}`;
     }
 
-    const res = await fetch(url, {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify({ activo: false })
+    // Eliminación directa (DELETE) en Supabase
+    let res = await fetch(url, {
+      method: "DELETE",
+      headers
     });
-    console.log(`[Supabase] Paciente ${id || dni} marcado como inactivo (status: ${res.status})`);
+    if (!res.ok) {
+      res = await fetch(url, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ activo: false })
+      });
+    }
+    console.log(`[Supabase] Paciente ${id || dni} eliminado/desactivado (status: ${res.status})`);
   } catch(e) {
     console.warn("[Supabase] Error dando de baja paciente:", e);
   }
@@ -1281,15 +1288,25 @@ window.eliminarMedico = async function(medicoId) {
       const SUPABASE_URL = "https://ibnkmbcnkrvwdtrjmcel.supabase.co";
       const SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlibmttYmNua3J2d2R0cmptY2VsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTExNDc4MCwiZXhwIjoyMTA0NjkwNzgwfQ.DwRIy8-ktRewOdswssnA-oC_b4TVLa0jSrLmjkXIS40";
       const cleanName = medico.nombre.replace(/^(Dr\.|Dra\.)\s*/, '');
-      await fetch(`${SUPABASE_URL}/rest/v1/clinica_doctores?nombre_completo=ilike.*${encodeURIComponent(cleanName)}*`, {
-        method: "PATCH",
+      const url = `${SUPABASE_URL}/rest/v1/clinica_doctores?nombre_completo=ilike.*${encodeURIComponent(cleanName)}*`;
+      let res = await fetch(url, {
+        method: "DELETE",
         headers: {
           "apikey": SERVICE_KEY,
-          "Authorization": "Bearer " + SERVICE_KEY,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ activo: false })
+          "Authorization": "Bearer " + SERVICE_KEY
+        }
       });
+      if (!res.ok) {
+        await fetch(url, {
+          method: "PATCH",
+          headers: {
+            "apikey": SERVICE_KEY,
+            "Authorization": "Bearer " + SERVICE_KEY,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ activo: false })
+        });
+      }
     } catch(e) {
       console.warn("Error desactivando doctor en Supabase:", e);
     }
