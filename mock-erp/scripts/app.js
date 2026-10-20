@@ -862,14 +862,14 @@ function setupBajaPacienteModal() {
   if (btnConfirmar && modal) {
     btnConfirmar.addEventListener("click", async () => {
       const id = getVal("baja-paciente-id");
-      const pacientes = getPacientes();
+      let pacientes = getPacientes();
       const p = pacientes.find(x => x.id === id);
       if (!p) return;
 
-      p.activo = false;
+      pacientes = pacientes.filter(x => x.id !== id);
       savePacientes(pacientes);
 
-      // Desactivar en Supabase (Soft delete médico RGPD)
+      // Eliminar directamente en Supabase (DELETE)
       await syncBajaPacienteToSupabase(p.id, p.dni);
 
       modal.classList.remove("open");
