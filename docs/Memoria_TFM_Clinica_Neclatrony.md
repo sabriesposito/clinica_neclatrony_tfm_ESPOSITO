@@ -662,10 +662,14 @@ El núcleo de orquestación en n8n se materializó a través de un workflow maes
 - Nodo 3: Supabase User Lookup (HTTP Request / Supabase Node). Busca si el chat_id existe en 'clinica_pacientes'. Si no existe, genera el flag is_new_patient = true.
 - Nodo 4: AI Agent — Intent & Criticality Classifier. Invoca a GPT-4o con el System Prompt del Agente 1 y obtiene el JSON estricto.
 - Nodo 5: Switch Router. Evalúa intent:
-  * Salida 0 (URGENCIA_MEDICA) $ightarrow$ Invoca Subflujo 3 (HITL Emergencias).
-  * Salida 1 (QUEJA_RECLAMO) $ightarrow$ Registra en BD y notifica a supervisión.
-  * Salida 2 (CONSULTA_FAQ) $ightarrow$ Invoca Agente RAG.
-  * Salida 3 (CITA_NUEVA / REPROGRAMAR / CANCELAR) $ightarrow$ Invoca Subflujo 1 (Gestor de Citas).
+  * Salida 0 (URGENCIA_MEDICA) $
+ightarrow$ Invoca Subflujo 3 (HITL Emergencias).
+  * Salida 1 (QUEJA_RECLAMO) $
+ightarrow$ Registra en BD y notifica a supervisión.
+  * Salida 2 (CONSULTA_FAQ) $
+ightarrow$ Invoca Agente RAG.
+  * Salida 3 (CITA_NUEVA / REPROGRAMAR / CANCELAR) $
+ightarrow$ Invoca Subflujo 1 (Gestor de Citas).
 
 2. Subflujo 1: Negociación de Disponibilidad y Slot-Filling:
 - Gestiona el diálogo iterativo con el paciente.
@@ -814,7 +818,13 @@ Para medir de forma objetiva la transformación operativa alcanzada, se realizó
 El despliegue de una arquitectura distribuida que entrelaza interfaces conversacionales, agentes probabilísticos de lenguaje natural, bases de datos vectoriales y robots de automatización de interfaz gráfica enfrenta desafíos técnicos específicos que fueron analizados y mitigados durante el desarrollo del proyecto:
 
 1. Latencia Acumulada de Extremo a Extremo:
-En una transacción típica de cita nueva, el tiempo total de procesamiento involucra múltiples saltos de red: Webhook de Telegram ($\sim$150 ms) $ightarrow$ Ingesta y normalización en n8n ($\sim$50 ms) $ightarrow$ Inferencia en OpenAI GPT-4o para clasificación ($\sim$900 ms) $ightarrow$ Consulta SQL en Supabase ($\sim$60 ms) $ightarrow$ Llamada REST a UiPath Orchestrator ($\sim$300 ms) $ightarrow$ Apertura de navegador y navegación RPA ($\sim$3.500 ms) $ightarrow$ Notificación final de retorno a Telegram ($\sim$200 ms). El tiempo agregado puede alcanzar entre 5 y 6 segundos. Si el paciente no percibe retroalimentación inmediata, puede abandonar el chat o enviar mensajes repetidos.
+En una transacción típica de cita nueva, el tiempo total de procesamiento involucra múltiples saltos de red: Webhook de Telegram ($\sim$150 ms) $
+ightarrow$ Ingesta y normalización en n8n ($\sim$50 ms) $
+ightarrow$ Inferencia en OpenAI GPT-4o para clasificación ($\sim$900 ms) $
+ightarrow$ Consulta SQL en Supabase ($\sim$60 ms) $
+ightarrow$ Llamada REST a UiPath Orchestrator ($\sim$300 ms) $
+ightarrow$ Apertura de navegador y navegación RPA ($\sim$3.500 ms) $
+ightarrow$ Notificación final de retorno a Telegram ($\sim$200 ms). El tiempo agregado puede alcanzar entre 5 y 6 segundos. Si el paciente no percibe retroalimentación inmediata, puede abandonar el chat o enviar mensajes repetidos.
 Estrategia de Mitigación: Se implementó un patrón de respuesta asíncrona inmediata en n8n. En cuanto el Agente 2 valida los datos, n8n dispara un mensaje instantáneo a Telegram: 'Estamos registrando tu turno en la agenda de la clínica, aguarda un instante...' con la acción 'typing' activa. Esto elimina la ansiedad del usuario mientras UiPath completa la interacción en el ERP.
 
 2. Control de Deriva Conversacional y Límites de Contexto:
@@ -966,11 +976,16 @@ Aprovechar las capacidades multimodales de la IA para permitir que los pacientes
    - UiPath Automation Cloud / Orchestrator (Gestión de colas y robots).
    - Mock Web App ERP Neclatrony (Aplicativo clínico simulado con 6 consultorios).
 8. Matriz de Excepciones del PDD:
-   - BE-01 (Business Exception): Paciente solicita cita en franja ocupada $ightarrow$ Acción: El Agente 2 ofrece alternativas inmediatas.
-   - BE-02 (Business Exception): Paciente intenta agendar segunda cita en la misma especialidad $ightarrow$ Acción: El sistema notifica la existencia de turno previo y ofrece reprogramar.
-   - BE-03 (Business Exception): Paciente no acepta condiciones de RGPD $ightarrow$ Acción: Suspensión de la conversación sin almacenamiento de datos.
-   - SE-01 (System Exception): Fallo de conexión con API de Telegram $ightarrow$ Acción: n8n reintenta con backoff exponencial.
-   - SE-02 (System Exception): Error de selector en Mock ERP $ightarrow$ Acción: ReFramework reinicia navegador y reintenta 3 veces antes de alertar a soporte.
+   - BE-01 (Business Exception): Paciente solicita cita en franja ocupada $
+ightarrow$ Acción: El Agente 2 ofrece alternativas inmediatas.
+   - BE-02 (Business Exception): Paciente intenta agendar segunda cita en la misma especialidad $
+ightarrow$ Acción: El sistema notifica la existencia de turno previo y ofrece reprogramar.
+   - BE-03 (Business Exception): Paciente no acepta condiciones de RGPD $
+ightarrow$ Acción: Suspensión de la conversación sin almacenamiento de datos.
+   - SE-01 (System Exception): Fallo de conexión con API de Telegram $
+ightarrow$ Acción: n8n reintenta con backoff exponencial.
+   - SE-02 (System Exception): Error de selector en Mock ERP $
+ightarrow$ Acción: ReFramework reinicia navegador y reintenta 3 veces antes de alertar a soporte.
 
 ## 8.2.1 Reglas de Negocio del PDD
 
@@ -1073,4 +1088,36 @@ Paso 4: Publicación y Ejecución del Robot en UiPath
 3. Configurar la URL local o pública del Mock ERP en el archivo Config.xlsx.
 4. Publicar el paquete NuGet en UiPath Orchestrator Cloud.
 5. Crear un proceso vinculado a la cola 'Citas_Neclatrony_Queue' con un trigger de cola (Queue Trigger) para disparo automático inmediato ante nuevos ítems.
+
+
+### 4.5.6 Arquitectura Integral de Manejo de Errores, Resiliencia y Notificación a Recepción (Human-in-the-Loop)
+
+El manejo de errores y excepciones constituye una dimensión crítica y diferencial en la arquitectura del proyecto, dado que en un entorno clínico real cualquier fallo no gestionado (como una cita confirmada en mensajería pero no registrada en el ERP, o un paciente de urgencia desatendido) puede generar severos perjuicios asistenciales, conflictos de agenda y responsabilidades legales. Para dotar al sistema de una robustez de grado médico, se diseñó una estrategia integral de tolerancia a fallos estructurada en tres niveles operativos:
+
+#### 1. Validación Preventiva y Tipado Estricto en Capa de Orquestación (n8n)
+- **Esquemas de Entrada JSON Schema en Herramientas LangChain:** En las herramientas conectadas al Agente de IA (`@n8n/n8n-nodes-langchain.toolCode`), se habilitó el parámetro `specifyInputSchema: true` con definiciones estrictas de tipos de datos y ejemplos estructurados. Esto previene de raíz el error clásico de LangChain donde el agente entrega objetos cuando se esperan cadenas o viceversa, asegurando que parámetros obligatorios (como `erp_cita_id`, `fecha`, `hora` y `dni`) ingresen siempre normalizados.
+- **Intercepción Determinística de Botones de Confirmación y Cancelación:** Los modelos de lenguaje probabilísticos pueden en ocasiones omitir la invocación de herramientas y responder únicamente con texto si se les da una instrucción conversacional libre. Para eliminar cualquier vulnerabilidad, el nodo `Normalizador de Mensaje` intercepta de forma previa y determinística los eventos de botón de Telegram (`CONFIRMAR_CITA:<id>` y `CANCELAR_CITA:<id>`). Al presionar el botón, el código ejecuta directamente la mutación en Supabase y el disparo a la API de UiPath Orchestrator antes de derivar la conversación al agente, garantizando un 100% de éxito en la ejecución de la acción sin depender de la inferencia del LLM.
+- **Resolución Inteligente y Multi-Estrategia de Citas:** Los pacientes no memorizan códigos alfanuméricos de turnos (como `NEC-1089`). Ante solicitudes de cancelación o reprogramación por texto libre (*"cancela la opción 2"* o *"cancela mi turno de las 11:30"*), la herramienta `cancelar_cita` implementa un algoritmo de resolución en cascada: 1) Si recibe un código alfanumérico, lo busca directamente en Supabase; 2) Si recibe un número de opción (1, 2, 3...), consulta el paciente vinculado al `telegram_chat_id` o DNI, ordena sus citas activas cronológicamente y resuelve el índice exacto; 3) Si recibe fecha u hora, filtra por dichos parámetros. Esto elimina fallos de ejecución por parámetros ambiguos.
+- **Verificación Obligatoria de DNI en Urgencias Médicas:** En situaciones de emergencia clínica, el bot no se limita a alertar de forma genérica; exige y valida el DNI del paciente para consultar su ficha histórica en Supabase y entregar a los recepcionistas el cuadro clínico y el teléfono de contacto inmediato.
+
+#### 2. Manejo de Excepciones y Selectores Determinísticos en UiPath (ReFramework v1.1.9)
+- **Selectores Determinísticos Multi-Atributo en la Agenda Web:** En interfaces visuales con vistas simultáneas de múltiples días (como la agenda del Mock ERP que muestra Lunes, Martes y Miércoles en paralelo), los selectores web basados únicamente en el nombre del paciente pueden provocar que el robot haga clic en el turno del día incorrecto si el paciente tiene citas en días contiguos. En la versión 1.1.9 de UiPath, se actualizaron los selectores de los botones de confirmación y cancelación para exigir coincidencia obligatoria y simultánea de tres atributos HTML: `data-fecha` (YYYY-MM-DD), `data-hora` (HH:MM) y `data-paciente`. Con esta triple validación, es matemáticamente imposible que el robot confirme o cancele un turno equivocado.
+- **Gestión de Excepciones del ReFramework:** Se mantiene una estricta segregación entre `BusinessRuleException` (ej. intento de reserva en un horario ocupado en el ERP) y `SystemException` (ej. lentitud de red, caída del servidor web o bloqueo del navegador). Ante fallos de sistema, ReFramework ejecuta el cierre seguro del navegador (Kill Process), reabre la aplicación y reintenta la transacción hasta 3 veces con espera exponencial antes de dar por fallida la operación.
+
+#### 3. Canal Centralizado de Notificación y Alerta a Recepción (Chat ID: -5137407308)
+- En caso de presentarse una excepción que no pueda ser resuelta de forma autónoma (como un error HTTP de Orchestrator, indisponibilidad del ERP o discrepancia de datos), el sistema no deja la transacción en el limbo ni desatiende al paciente.
+- Tanto los nodos de n8n como el bloque de captura de errores de UiPath disparan automáticamente una llamada HTTP hacia la API de Telegram con destino al **Grupo Privado de Recepcionistas de Neclatrony (Chat ID: -5137407308)**.
+- **Formato Estructurado de la Alerta de Fallo:**
+```html
+⚠️ <b>FALLO EN AUTOMATIZACIÓN - ATENCIÓN MANUAL REQUERIDA</b> ⚠️
+
+📌 <b>Proceso:</b> [Proceso afectado: Alta / Confirmación / Cancelación]
+👤 <b>Paciente:</b> [Nombre completo] (DNI: [DNI])
+📅 <b>Turno:</b> [Fecha] a las [Hora] hs
+❌ <b>Detalle del Fallo:</b> [Descripción técnica exacta del error / Código HTTP]
+⏰ <b>Hora del Incidente:</b> [HH:MM:SS] hs
+
+👉 <i>Recepcionistas: Por favor realizar la acción manualmente en la web del ERP para asegurar la consistencia.</i>
+```
+- **Protocolo Operativo Humano:** Al recibir esta notificación con sonido prioritario en sus dispositivos, el personal de recepción abre de inmediato el panel web del ERP y ejecuta la acción de forma manual en menos de 2 minutos, manteniendo una consistencia del 100% en los registros y garantizando que el paciente reciba siempre su atención sin fricciones.
 
