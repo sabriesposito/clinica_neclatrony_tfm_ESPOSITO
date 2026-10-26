@@ -1393,3 +1393,59 @@ function getSlotsBloqueados(fecha, medico) {
     .filter(c => c.fecha === fecha && (!medico || c.medico === medico) && (c.estado || "").toLowerCase().trim() !== "cancelada")
     .map(c => c.hora);
 }
+
+// ── Configuración de la Clínica, Horarios y Vacaciones ──────────────────────
+const DEFAULT_CONFIG = {
+  horaApertura: "08:30",
+  horaCierre: "20:30",
+  duraciones: {
+    "General": 30,
+    "Ortodoncia": 30,
+    "Limpieza dental": 30,
+    "Blanqueamiento dental": 30,
+    "Empaste": 30,
+    "Periodoncia": 45,
+    "Prótesis": 45,
+    "Endodoncia": 45,
+    "Cirugía": 60,
+    "Implante": 60
+  },
+  bloqueosClinica: [],
+  vacacionesDoctores: []
+};
+
+function getConfiguracion() {
+  const saved = localStorage.getItem("neclatrony_config");
+  if (!saved) {
+    localStorage.setItem("neclatrony_config", JSON.stringify(DEFAULT_CONFIG));
+    return DEFAULT_CONFIG;
+  }
+  try {
+    return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
+  } catch(e) {
+    return DEFAULT_CONFIG;
+  }
+}
+
+function saveConfiguracion(cfg) {
+  localStorage.setItem("neclatrony_config", JSON.stringify(cfg));
+}
+
+function isClinicaBloqueada(fechaStr) {
+  const cfg = getConfiguracion();
+  return (cfg.bloqueosClinica || []).some(b => {
+    return fechaStr >= b.fechaInicio && fechaStr <= (b.fechaFin || b.fechaInicio);
+  });
+}
+
+function getDoctorVacaciones(doctorId, fechaStr) {
+  const cfg = getConfiguracion();
+  return (cfg.vacacionesDoctores || []).find(v => {
+    return v.doctorId === doctorId && fechaStr >= v.fechaInicio && fechaStr <= (v.fechaFin || v.fechaInicio);
+  });
+}
+
+function getSlotsDisponibles(fecha) {
+  const bloqueados = getSlotsBloqueados(fecha);
+  return HORARIOS.filter(h => !bloqueados.includes(h));
+}
