@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupConfiguracionPage();
   fetchPacientesFromSupabase();
   fetchDoctoresFromSupabase();
-  // fetchCitasFromSupabase(); // Desactivado: las citas en la web ahora se registran exclusivamente a través de la UI (UiPath RPA o recepcionista)
+  // fetchCitasFromSupabase(); // Desactivado: las citas se registran exclusivamente por front (RPA / recepcionista)
 
   const badge = document.getElementById("badge-citas-hoy");
   const cantHoy = getCitasHoy().length;
@@ -179,32 +179,74 @@ function renderDashboard() {
               <td>${c.tratamiento}</td>
               <td>${formatFecha(c.fecha)}</td>
               <td>${c.hora}</td>
-              <td><span class="badge badge-${c.estado}">${capitalize(c.estado)}</span></td>
+              <td><span class="badge badge-${getEstadoDisplay(c.estado).class}">${getEstadoDisplay(c.estado).label}</span></td>
             </tr>`).join("")}
         </tbody>
       </table>
     </div>`;
 }
 
-// ── Agenda Interactiva Multi-Día (3 Días) ──────────────────────────────────
-let currentAgendaDate = new Date().toISOString().split("T")[0];
+function getEstadoDisplay(estado) {
+  const e = (estado || "").toLowerCase().trim();
+  if (e === "confirmada" || e === "confirmada_24h") return { class: "confirmada", label: "Confirmada", isConfirmada: true };
+  if (e === "cancelada") return { class: "cancelada", label: "Cancelada", isConfirmada: false };
+  return { class: "pendiente", label: "Pendiente", isConfirmada: false };
+}
+
+// ── Agenda Interactiva Multi-Día (3 Días Hábiles) ──────────────────────────
+function normalizarADiaHabil(dStr, direccion = 1) {
+  const d = new Date(dStr + "T12:00:00Z");
+  const day = d.getUTCDay(); // 0 = Domingo, 6 = Sábado
+  if (day === 6) {
+    d.setUTCDate(d.getUTCDate() + (direccion >= 0 ? 2 : -1));
+  } else if (day === 0) {
+    d.setUTCDate(d.getUTCDate() + (direccion >= 0 ? 1 : -2));
+  }
+  return d.toISOString().split("T")[0];
+}
+
+function getDiasHabiles(fechaInicioStr, cantidad = 3) {
+  let d = new Date(normalizarADiaHabil(fechaInicioStr, 1) + "T12:00:00Z");
+  const dias = [];
+  while (dias.length < cantidad) {
+    const day = d.getUTCDay();
+    if (day !== 0 && day !== 6) {
+      dias.push(d.toISOString().split("T")[0]);
+    }
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return dias;
+}
+
+let currentAgendaDate = normalizarADiaHabil(new Date().toISOString().split("T")[0], 1);
 
 function setupAgendaControls() {
   const picker = document.getElementById("agenda-fecha");
   if (picker) {
     picker.value = currentAgendaDate;
-    picker.addEventListener("change", (e) => {
-      if (e.target.value) {
-        currentAgendaDate = e.target.value;
+    const handleDateChange = () => {
+      if (picker.value && picker.value !== currentAgendaDate) {
+        currentAgendaDate = normalizarADiaHabil(picker.value, 1);
+        picker.value = currentAgendaDate;
         renderAgendaView();
       }
-    });
+    };
+    picker.addEventListener("change", handleDateChange);
+    picker.addEventListener("input", handleDateChange);
+
+    // Watcher de cambios automáticos (para TypeInto de RPA o scripts)
+    setInterval(() => {
+      if (picker.value && picker.value !== currentAgendaDate) {
+        currentAgendaDate = normalizarADiaHabil(picker.value, 1);
+        renderAgendaView();
+      }
+    }, 300);
   }
 
   const btnHoy = document.getElementById("btn-agenda-hoy");
   if (btnHoy) {
     btnHoy.addEventListener("click", () => {
-      currentAgendaDate = new Date().toISOString().split("T")[0];
+      currentAgendaDate = normalizarADiaHabil(new Date().toISOString().split("T")[0], 1);
       if (picker) picker.value = currentAgendaDate;
       renderAgendaView();
     });
@@ -214,8 +256,8 @@ function setupAgendaControls() {
   if (btnPrev) {
     btnPrev.addEventListener("click", () => {
       const d = new Date(currentAgendaDate + "T12:00:00Z");
-      d.setDate(d.getDate() - 1);
-      currentAgendaDate = d.toISOString().split("T")[0];
+      d.setUTCDate(d.getUTCDate() - 1);
+      currentAgendaDate = normalizarADiaHabil(d.toISOString().split("T")[0], -1);
       if (picker) picker.value = currentAgendaDate;
       renderAgendaView();
     });
@@ -225,8 +267,8 @@ function setupAgendaControls() {
   if (btnNext) {
     btnNext.addEventListener("click", () => {
       const d = new Date(currentAgendaDate + "T12:00:00Z");
-      d.setDate(d.getDate() + 1);
-      currentAgendaDate = d.toISOString().split("T")[0];
+      d.setUTCDate(d.getUTCDate() + 1);
+      currentAgendaDate = normalizarADiaHabil(d.toISOString().split("T")[0], 1);
       if (picker) picker.value = currentAgendaDate;
       renderAgendaView();
     });
@@ -262,13 +304,8 @@ function renderAgendaView() {
   const doctorObj = doctorFiltro ? getMedicos().find(m => m.nombre.toLowerCase().includes(doctorFiltro)) : null;
   const allCitas = getCitas();
 
-  // 3-day dates array
-  const baseD = new Date(currentAgendaDate + "T12:00:00Z");
-  const dates = [0, 1, 2].map(offset => {
-    const d = new Date(baseD);
-    d.setDate(d.getDate() + offset);
-    return d.toISOString().split("T")[0];
-  });
+  // 3-day dates array (solo días hábiles: lunes a viernes)
+  const dates = getDiasHabiles(currentAgendaDate, 3);
 
   // Calculate KPIs for the 3-day window
   const windowCitas = allCitas.filter(c => {
@@ -278,12 +315,9 @@ function renderAgendaView() {
   });
 
   const totalCitas = windowCitas.length;
-  const confirmadas = windowCitas.filter(c => (c.estado || "").toLowerCase().trim() === "confirmada").length;
-  const pendientes = windowCitas.filter(c => {
-    const s = (c.estado || "").toLowerCase().trim();
-    return s === "pendiente" || s === "programada";
-  }).length;
-  const canceladas = windowCitas.filter(c => (c.estado || "").toLowerCase().trim() === "cancelada").length;
+  const confirmadas = windowCitas.filter(c => getEstadoDisplay(c.estado).class === "confirmada").length;
+  const pendientes = windowCitas.filter(c => getEstadoDisplay(c.estado).class === "pendiente").length;
+  const canceladas = windowCitas.filter(c => getEstadoDisplay(c.estado).class === "cancelada").length;
 
   setEl("kpi-total-citas", totalCitas);
   setEl("kpi-confirmadas", confirmadas);
@@ -303,8 +337,11 @@ function renderAgendaView() {
     const dayName = diasSemana[dObj.getUTCDay()];
     const dayNum = dObj.getUTCDate();
     const monthName = meses[dObj.getUTCMonth()];
+    const tomorrowD = new Date();
+    tomorrowD.setDate(tomorrowD.getDate() + 1);
+    const tomorrowStr = tomorrowD.toISOString().split("T")[0];
     const isToday = (dateStr === hoyStr);
-    const isTomorrow = (idx === 1 && dates[0] === hoyStr);
+    const isTomorrow = (dateStr === tomorrowStr);
 
     let tag = "";
     if (isToday) tag = " (Hoy)";
@@ -349,13 +386,13 @@ function renderAgendaView() {
 
       if (dayCitasActivas.length > 0) {
         dayCitasActivas.forEach(cita => {
-          const rawEstado = (cita.estado || "").toLowerCase().trim();
-          const isConfirmada = rawEstado === "confirmada";
-          const normClass = isConfirmada ? "confirmada" : (rawEstado === "programada" ? "programada" : "pendiente");
-          const estadoLabel = rawEstado === "programada" ? "Programada" : (isConfirmada ? "Confirmada" : "Pendiente");
+          const estInfo = getEstadoDisplay(cita.estado);
+          const isConfirmada = estInfo.isConfirmada;
+          const normClass = estInfo.class;
+          const estadoLabel = estInfo.label;
 
           colHtml += `
-            <div class="slot-card ${normClass}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
+            <div class="slot-card ${normClass}" data-fecha="${dateStr}" data-hora="${cita.hora}" data-paciente="${cita.pacienteNombre}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
               <div class="slot-row-main">
                 <div class="slot-time-patient">
                   <span class="slot-time-badge">${cita.hora} - ${calcularFinTurno(cita.hora, cita.tratamiento)}</span>
@@ -363,8 +400,8 @@ function renderAgendaView() {
                 </div>
                 <div class="slot-row-actions">
                   <span class="badge badge-${normClass}">${estadoLabel}</span>
-                  ${(!isConfirmada) ? `<button class="btn-slot-action btn-slot-confirm" onclick="confirmarCita('${cita.id}')" title="Confirmar asistencia">✓</button>` : ''}
-                  <button class="btn-slot-action btn-slot-cancel" onclick="cancelarCita('${cita.id}')" title="Cancelar cita">✕</button>
+                  ${(!isConfirmada) ? `<button class="btn-slot-action btn-slot-confirm" id="btn-confirm-${dateStr}-${cita.hora.replace(':', '')}" onclick="confirmarCita('${cita.id}')" data-fecha="${dateStr}" data-hora="${cita.hora}" data-cita-id="${cita.id}" data-paciente="${cita.pacienteNombre}" title="Confirmar asistencia - ${cita.pacienteNombre}">✓</button>` : ''}
+                  <button class="btn-slot-action btn-slot-cancel" id="btn-cancel-${dateStr}-${cita.hora.replace(':', '')}" onclick="cancelarCita('${cita.id}')" data-fecha="${dateStr}" data-hora="${cita.hora}" data-cita-id="${cita.id}" data-paciente="${cita.pacienteNombre}" title="Cancelar cita - ${cita.pacienteNombre}">✕</button>
                 </div>
               </div>
               <div class="slot-row-sub">
@@ -379,13 +416,13 @@ function renderAgendaView() {
         const citasHora = dayCitasActivas.filter(c => c.hora === hora);
         if (citasHora.length > 0) {
           citasHora.forEach(cita => {
-            const rawEstado = (cita.estado || "").toLowerCase().trim();
-            const isConfirmada = rawEstado === "confirmada";
-            const normClass = isConfirmada ? "confirmada" : (rawEstado === "programada" ? "programada" : "pendiente");
-            const estadoLabel = rawEstado === "programada" ? "Programada" : (isConfirmada ? "Confirmada" : "Pendiente");
+            const estInfo = getEstadoDisplay(cita.estado);
+            const isConfirmada = estInfo.isConfirmada;
+            const normClass = estInfo.class;
+            const estadoLabel = estInfo.label;
 
             colHtml += `
-              <div class="slot-card ${normClass}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
+              <div class="slot-card ${normClass}" data-fecha="${dateStr}" data-hora="${hora}" data-paciente="${cita.pacienteNombre}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
                 <div class="slot-row-main">
                   <div class="slot-time-patient">
                     <span class="slot-time-badge">${hora} - ${calcularFinTurno(hora, cita.tratamiento)}</span>
@@ -393,8 +430,8 @@ function renderAgendaView() {
                   </div>
                   <div class="slot-row-actions">
                     <span class="badge badge-${normClass}">${estadoLabel}</span>
-                    ${(!isConfirmada) ? `<button class="btn-slot-action btn-slot-confirm" onclick="confirmarCita('${cita.id}')" title="Confirmar asistencia">✓</button>` : ''}
-                    <button class="btn-slot-action btn-slot-cancel" onclick="cancelarCita('${cita.id}')" title="Cancelar cita">✕</button>
+                    ${(!isConfirmada) ? `<button class="btn-slot-action btn-slot-confirm" id="btn-confirm-${dateStr}-${hora.replace(':', '')}" onclick="confirmarCita('${cita.id}')" data-fecha="${dateStr}" data-hora="${hora}" data-cita-id="${cita.id}" data-paciente="${cita.pacienteNombre}" title="Confirmar asistencia - ${cita.pacienteNombre}">✓</button>` : ''}
+                    <button class="btn-slot-action btn-slot-cancel" id="btn-cancel-${dateStr}-${hora.replace(':', '')}" onclick="cancelarCita('${cita.id}')" data-fecha="${dateStr}" data-hora="${hora}" data-cita-id="${cita.id}" data-paciente="${cita.pacienteNombre}" title="Cancelar cita - ${cita.pacienteNombre}">✕</button>
                   </div>
                 </div>
                 <div class="slot-row-sub">
@@ -709,7 +746,7 @@ function verPaciente(pacienteId) {
                 <td>${formatFecha(c.fecha)}</td>
                 <td>${c.tratamiento}</td>
                 <td>${c.medico}</td>
-                <td><span class="badge badge-${(c.estado || '').toLowerCase()}">${capitalize(c.estado)}</span></td>
+                <td><span class="badge badge-${getEstadoDisplay(c.estado).class}">${getEstadoDisplay(c.estado).label}</span></td>
               </tr>`).join("")}
           </tbody>
         </table>
@@ -890,26 +927,20 @@ async function syncBajaPacienteToSupabase(id, dni) {
   };
 
   try {
-    let url;
+    const cleanDni = (dni || '').trim();
     if (id && id.includes("-") && id.length > 20) {
-      url = `${SUPABASE_URL}/rest/v1/clinica_pacientes?id=eq.${id}`;
-    } else {
-      url = `${SUPABASE_URL}/rest/v1/clinica_pacientes?dni=eq.${dni}`;
-    }
-
-    // Eliminación directa (DELETE) en Supabase
-    let res = await fetch(url, {
-      method: "DELETE",
-      headers
-    });
-    if (!res.ok) {
-      res = await fetch(url, {
-        method: "PATCH",
-        headers,
-        body: JSON.stringify({ activo: false })
+      await fetch(`${SUPABASE_URL}/rest/v1/clinica_pacientes?id=eq.${id}`, {
+        method: "DELETE",
+        headers
       });
     }
-    console.log(`[Supabase] Paciente ${id || dni} eliminado/desactivado (status: ${res.status})`);
+    if (cleanDni) {
+      await fetch(`${SUPABASE_URL}/rest/v1/clinica_pacientes?dni=eq.${cleanDni}`, {
+        method: "DELETE",
+        headers
+      });
+    }
+    console.log(`[Supabase] Paciente ${id || dni} eliminado físicamente.`);
   } catch(e) {
     console.warn("[Supabase] Error dando de baja paciente:", e);
   }
@@ -1971,6 +2002,16 @@ async function syncCitaToSupabase(data) {
     const duracionMin = 30; // 30 minutos por defecto
     const endIso = new Date(new Date(startIso).getTime() + duracionMin * 60 * 1000).toISOString();
 
+    // 4b. Comprobar si ya existe una cita para este paciente y horario (ej: generada previamente por Telegram)
+    if (pacienteId) {
+      const checkResp = await fetch(`${SUPABASE_URL}/rest/v1/clinica_citas?paciente_id=eq.${pacienteId}&fecha_hora_inicio=eq.${startIso}&estado=neq.CANCELADA&select=id,erp_cita_id`, { headers });
+      const existing = await checkResp.json();
+      if (Array.isArray(existing) && existing.length > 0) {
+        console.log("[Sync ERP -> Supabase] Turno ya registrado previamente en Supabase (ej: Telegram), evitando duplicado:", existing[0].erp_cita_id);
+        return;
+      }
+    }
+
     // 5. Insertar cita en Supabase con canal PRESENCIAL
     const nuevaCita = {
       erp_cita_id: data.erp_cita_id,
@@ -2034,7 +2075,7 @@ async function fetchCitasFromSupabase() {
         fecha: fecha,
         hora: hora,
         medico: medNombre,
-        estado: (rc.estado || "confirmada").toLowerCase(),
+        estado: (rc.estado === "CONFIRMADA_24H" || rc.estado === "CONFIRMADA") ? "confirmada" : (rc.estado || "programada").toLowerCase(),
         notas: `Canal: ${rc.canal_origen || 'TELEGRAM'}`
       };
 

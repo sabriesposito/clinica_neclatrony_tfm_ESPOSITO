@@ -1,0 +1,27 @@
+-- Seed data: 25 Pacientes y Agenda densa al 80% de capacidad (TFM Neclatrony)
+-- 1. Pacientes
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Sofía Ruiz Morales', '', '56789012E', '656789012', 'sofia.ruiz@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Carla', '', '12345689', '518711654', 'None', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Miguel López Fernández', '', '45678901D', '1111111', 'mlopez@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Giovanna Dapena', '', '45896235', '123456854', 'None', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Tony Montana', '', '76543216', '22334455', 'None', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Lali Esposito', '', '98765438', '55668899', 'None', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Pablo Zilber', '', '28800559', '34498888', 'None', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Sabrina Esposito', '', '38522432', '1166266845', 'None', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Carlos Mendoza', '', '30112233', '1144556677', 'carlos.mendoza@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Lucía Navarro', '', '32445566', '1155667788', 'lucia.navarro@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Martín Palermo', '', '23998877', '1166778899', 'martin.palermo@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Valentina Rossi', '', '41223344', '1177889900', 'valentina.rossi@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Diego Maradona', '', '14223344', '1188990011', 'diego.maradona@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Florencia Peña', '', '24556677', '1199001122', 'florencia.pena@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Gonzalo Higuaín', '', '33445566', '1122334455', 'gonzalo.higuain@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Camila O''Gorman', '', '36778899', '1133445566', 'camila.ogorman@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Mateo Benítez', '', '43112233', '1144332211', 'mateo.benitez@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Julieta Prandi', '', '27889900', '1155443322', 'julieta.prandi@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Joaquín Sorolla', '', '21334455', '1166554433', 'joaquin.sorolla@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Mariana Fabbiani', '', '25667788', '1177665544', 'mariana.fabbiani@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Rodrigo De Paul', '', '37889911', '1188776655', 'rodrigo.depaul@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Antonela Roccuzzo', '', '35112244', '1199887766', 'antonela.roccuzzo@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Emiliano Martínez', '', '36445588', '1122113344', 'emiliano.martinez@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Romina Gaetani', '', '26334477', '1133224455', 'romina.gaetani@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
+INSERT INTO clinica_pacientes (nombre, apellidos, dni, telefono, email, acepta_rgpd, activo) VALUES ('Lucas Castromán', '', '28112299', '1144335566', 'lucas.castroman@email.com', true, true) ON CONFLICT (dni) DO NOTHING;
