@@ -356,7 +356,7 @@ Es el cerebro del sistema. Ejecuta la normalización de los datos entrantes (ext
 Unifica en una única base de datos PostgreSQL la información maestra de la clínica: fichas de pacientes, cuadro médico de doctores, agenda consolidada de citas de los 6 consultorios, registro de auditoría y la base de conocimiento médico indexada en vectores de 1.536 dimensiones con la extensión 'pgvector'. Permite la ejecución de búsquedas semánticas híbridas mediante funciones RPC de similitud de coseno.
 
 4. Capa de Automatización Robótica de Procesos (RPA Layer - UiPath):
-Constituye el puente no invasivo hacia el software de gestión interno de la clínica (Mock Web App ERP). Cuando el Agente Gestor de Citas en n8n ha validado y cerrado la totalidad de los parámetros de una solicitud (DNI, doctor, especialidad, fecha y hora), invoca a través de una llamada REST a la API de UiPath Orchestrator para encolar un nuevo Transaction Item en la cola 'Citas_Neclatrony_Queue'. El Robot desatendido de UiPath procesa la cola, abre la interfaz del ERP, verifica la disponibilidad real de los sillones y registra la operación de forma determinística, devolviendo el resultado de la transacción a n8n.
+Constituye el puente no invasivo hacia el software de gestión interno de la clínica (Mock Web App ERP). Cuando el Agente Gestor de Citas en n8n ha validado y cerrado la totalidad de los parámetros de una solicitud (DNI, doctor, especialidad, fecha y hora), invoca a través de una llamada REST a la API de UiPath Orchestrator para encolar un nuevo Transaction Item en la cola 'ClinicaNeclatrony_UiPath_Process (StartJobs)'. El Robot desatendido de UiPath procesa la cola, abre la interfaz del ERP, verifica la disponibilidad real de los sillones y registra la operación de forma determinística, devolviendo el resultado de la transacción a n8n.
 
 4.2 Modelado de Procesos BPMN: Del Modelo Manual (AS-IS) al Flujo Hiperautomatizado (TO-BE)
 
@@ -682,12 +682,12 @@ ightarrow$ Invoca Subflujo 1 (Gestor de Citas).
 3. Subflujo 2: Integración con UiPath Orchestrator Cloud API:
 - Nodo de Autenticación OAuth 2.0: Obtiene el bearer token corporativo contra el identity provider de UiPath Cloud.
 - Nodo Add Queue Item (HTTP Request POST):
-  Endpoint: https://cloud.uipath.com/{organization}/{tenant}/orchestrator_/odata/Queues/UiPath.Server.Configuration.OData.AddQueueItem
+  Endpoint: https://cloud.uipath.com/{organization}/{tenant}/orchestrator_/odata/Queues/UiPath.Server.Configuration.OData.StartJobs
   Headers: Authorization: Bearer {token}, X-UIPATH-OrganizationUnitId: {folder_id}
   Payload:
   {
     "itemData": {
-      "Name": "Citas_Neclatrony_Queue",
+      "Name": "ClinicaNeclatrony_UiPath_Process (StartJobs)",
       "Priority": "High",
       "SpecificContent": {
         "DNI": "12345678Z",
@@ -747,7 +747,7 @@ El componente robótico de UiPath fue estructurado sobre la plantilla Robotic En
   * Verifica que la pantalla principal de la agenda cargue correctamente (selector web validado mediante Check App State).
 
 - Estado 2: Get Transaction Data:
-  * Recupera el siguiente ítem disponible en la cola 'Citas_Neclatrony_Queue' mediante la actividad 'Get Transaction Item'.
+  * Recupera el siguiente ítem disponible en la cola 'ClinicaNeclatrony_UiPath_Process (StartJobs)' mediante la actividad 'Get Transaction Item'.
   * Si no hay transacciones pendientes, transiciona a 'End Process'.
 
 - Estado 3: Process Transaction:
@@ -897,7 +897,7 @@ Matriz de Evaluación de Riesgos de Privacidad (EIPD):
    - Nivel de Riesgo Inherente: MEDIO (Probabilidad Media, Impacto Moderado).
    - Medidas Mitigadoras Técnicas:
      * Vinculación criptográfica unívoca entre el 'telegram_chat_id' y el DNI verificado del paciente.
-     * Para operaciones críticas (como cancelar una cirugía de implantes o consultar datos del historial), el sistema exige confirmación mediante el envío de un código OTP (One-Time Password) de 4 dígitos al número de teléfono móvil registrado en la ficha oficial del ERP.
+     * Para operaciones críticas (como cancelar una cirugía de implantes o consultar datos del historial), el sistema exige confirmación mediante el envío de un código autenticación cruzada de doble factor relacional (DNI + telegram_chat_id verificado) registrado en la ficha oficial del ERP.
    - Nivel de Riesgo Residual: MUY BAJO.
 
 4. Riesgo R-04: Indisponibilidad del servicio de agendamiento por caída de la infraestructura en nube.
@@ -1007,7 +1007,7 @@ El robot de UiPath valida que la duración del bloque solicitado respete los est
 
 Regla de Negocio RN-03: Ventana de Cancelación y Penalización de Fianza Quirúrgica
 - Citas Estándar (General / Ortodoncia): Cancelación gratuita permitida hasta 2 horas antes del turno.
-- Cirugías Mayores (Implantes / Extracciones Molares): Cancelación sin coste permitida con un mínimo de 24 horas de antelación. Si el paciente intenta cancelar una cirugía mayor con menos de 24 horas a través de Telegram, el sistema procesa la baja pero despliega una advertencia reglamentaria: 'Tu cita quirúrgica ha sido cancelada. Al haberse realizado con menos de 24 horas de preaviso, se aplicará la política de retención de la fianza de quirófano (50 €) según las condiciones de la clínica salvo causa de fuerza mayor debidamente justificada'.
+- Cirugías Mayores (Implantes / Extracciones Molares): Cancelación sin coste permitida con un mínimo de 24 horas de antelación. Si el paciente intenta cancelar una cirugía mayor con menos de 24 horas a través de Telegram, el sistema procesa la baja pero despliega una advertencia reglamentaria: 'Tu cita quirúrgica ha sido cancelada. Al haberse realizado con menos de 24 horas de preaviso, se aplicará la política de retención de la política de cancelación de la clínica según las condiciones de la clínica salvo causa de fuerza mayor debidamente justificada'.
 
 8.3 Anexo B: Diccionario de Datos Completo del Sistema
 
@@ -1087,7 +1087,7 @@ Paso 4: Publicación y Ejecución del Robot en UiPath
 2. Verificar que las dependencias de paquetes (UiPath.UIAutomation.Activities, UiPath.System.Activities, UiPath.WebAPI.Activities) estén actualizadas.
 3. Configurar la URL local o pública del Mock ERP en el archivo Config.xlsx.
 4. Publicar el paquete NuGet en UiPath Orchestrator Cloud.
-5. Crear un proceso vinculado a la cola 'Citas_Neclatrony_Queue' con un trigger de cola (Queue Trigger) para disparo automático inmediato ante nuevos ítems.
+5. Crear un proceso vinculado a la cola 'ClinicaNeclatrony_UiPath_Process (StartJobs)' con un trigger de cola (Queue Trigger) para disparo automático inmediato ante nuevos ítems.
 
 
 ### 4.5.6 Arquitectura Integral de Manejo de Errores, Resiliencia y Notificación a Recepción (Human-in-the-Loop)
