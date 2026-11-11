@@ -1002,3 +1002,111 @@ textarea {
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
+/* --- Visualización Temporal: AHORA & Turnos Pasados --- */
+.agenda-live-clock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: #FEF2F2;
+  border: 1.5px solid #FCA5A5;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #DC2626;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.1);
+}
+.live-clock-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #DC2626;
+  box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+  animation: livePulse 1.8s infinite;
+}
+@keyframes livePulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+.agenda-now-marker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  position: relative;
+  z-index: 10;
+}
+.now-marker-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  background: #DC2626;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
+  white-space: nowrap;
+}
+.now-marker-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, #DC2626 0%, rgba(220, 38, 38, 0.3) 100%);
+  border-radius: 2px;
+}
+
+/* Slots Pasados */
+.slot-card.slot-pasado {
+  background: #F1F5F9 !important;
+  border-color: #CBD5E1 !important;
+  opacity: 0.52 !important;
+  filter: grayscale(85%);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+.slot-card.slot-pasado:hover {
+  opacity: 0.9 !important;
+  filter: grayscale(20%);
+}
+.slot-card.slot-pasado .slot-time-badge {
+  background: #E2E8F0 !important;
+  color: #64748B !important;
+}
+.slot-card.slot-pasado .badge-pendiente {
+  background: #E2E8F0 !important;
+  color: #64748B !important;
+}
+.slot-empty-btn.slot-empty-pasado {
+  background: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+  color: #94A3B8 !important;
+  opacity: 0.45 !important;
+}
+
+/* Slot En Curso */
+.slot-card.slot-en-curso {
+  border: 2px solid #2563EB !important;
+  background: #EFF6FF !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18), 0 4px 12px rgba(37, 99, 235, 0.15) !important;
+  position: relative;
+}
+.slot-card.slot-en-curso::after {
+  content: "EN CURSO";
+  position: absolute;
+  top: -9px;
+  right: 12px;
+  background: #2563EB;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+

@@ -326,7 +326,26 @@ function renderAgendaView() {
   setEl("agenda-resumen", `Mostrando ${totalCitas} citas entre ${formatFecha(dates[0])} y ${formatFecha(dates[2])}`);
 
   const HORAS = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","16:00","16:30","17:00","17:30","18:00","18:30"];
-  const hoyStr = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const hoyStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const horaActualStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+  // Actualizar reloj en toolbar
+  const liveClockEl = document.getElementById("live-clock-text");
+  if (liveClockEl) {
+    liveClockEl.textContent = `Hora actual: ${horaActualStr} hs`;
+  }
+
+  // Timer para actualizar automáticamente la línea de tiempo y reloj cada 30s
+  if (!window._agendaClockInterval) {
+    window._agendaClockInterval = setInterval(() => {
+      const secAgenda = document.getElementById("seccion-agenda");
+      if (secAgenda && !secAgenda.classList.contains("hidden")) {
+        renderAgendaView();
+      }
+    }, 30000);
+  }
+
   const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
   const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -342,6 +361,7 @@ function renderAgendaView() {
     const tomorrowStr = tomorrowD.toISOString().split("T")[0];
     const isToday = (dateStr === hoyStr);
     const isTomorrow = (dateStr === tomorrowStr);
+    const isPastDay = (dateStr < hoyStr);
 
     let tag = "";
     if (isToday) tag = " (Hoy)";
@@ -390,12 +410,17 @@ function renderAgendaView() {
           const isConfirmada = estInfo.isConfirmada;
           const normClass = estInfo.class;
           const estadoLabel = estInfo.label;
+          const finTurno = calcularFinTurno(cita.hora, cita.tratamiento);
+
+          const isPasado = isPastDay || (isToday && finTurno <= horaActualStr);
+          const isEnCurso = isToday && (cita.hora <= horaActualStr && finTurno > horaActualStr);
+          const extraSlotClass = isPasado ? "slot-pasado" : (isEnCurso ? "slot-en-curso" : "");
 
           colHtml += `
-            <div class="slot-card ${normClass}" data-fecha="${dateStr}" data-hora="${cita.hora}" data-paciente="${cita.pacienteNombre}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
+            <div class="slot-card ${normClass} ${extraSlotClass}" data-fecha="${dateStr}" data-hora="${cita.hora}" data-paciente="${cita.pacienteNombre}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
               <div class="slot-row-main">
                 <div class="slot-time-patient">
-                  <span class="slot-time-badge">${cita.hora} - ${calcularFinTurno(cita.hora, cita.tratamiento)}</span>
+                  <span class="slot-time-badge">${cita.hora} - ${finTurno}</span>
                   <span class="slot-patient-name" onclick="buscarYVerPaciente('${cita.pacienteNombre}')">${cita.pacienteNombre}</span>
                 </div>
                 <div class="slot-row-actions">
@@ -412,7 +437,31 @@ function renderAgendaView() {
         });
       }
     } else {
-      HORAS.forEach(hora => {
+      let markerPlaced = false;
+
+      // Si hoy la hora actual es antes del primer turno (antes de las 09:00), colocar el marcador al principio
+      if (isToday && horaActualStr < HORAS[0]) {
+        colHtml += `
+          <div class="agenda-now-marker" id="agenda-now-marker-col">
+            <span class="now-marker-badge"><span class="now-pulse-dot"></span> AHORA ${horaActualStr} hs</span>
+            <div class="now-marker-line"></div>
+          </div>
+        `;
+        markerPlaced = true;
+      }
+
+      HORAS.forEach((hora, hIdx) => {
+        // Colocar el marcador AHORA en el punto cronológico exacto entre turnos de hoy
+        if (isToday && !markerPlaced && hora > horaActualStr) {
+          colHtml += `
+            <div class="agenda-now-marker" id="agenda-now-marker-col">
+              <span class="now-marker-badge"><span class="now-pulse-dot"></span> AHORA ${horaActualStr} hs</span>
+              <div class="now-marker-line"></div>
+            </div>
+          `;
+          markerPlaced = true;
+        }
+
         const citasHora = dayCitasActivas.filter(c => c.hora === hora);
         if (citasHora.length > 0) {
           citasHora.forEach(cita => {
@@ -420,12 +469,17 @@ function renderAgendaView() {
             const isConfirmada = estInfo.isConfirmada;
             const normClass = estInfo.class;
             const estadoLabel = estInfo.label;
+            const finTurno = calcularFinTurno(hora, cita.tratamiento);
+
+            const isPasado = isPastDay || (isToday && finTurno <= horaActualStr);
+            const isEnCurso = isToday && (hora <= horaActualStr && finTurno > horaActualStr);
+            const extraSlotClass = isPasado ? "slot-pasado" : (isEnCurso ? "slot-en-curso" : "");
 
             colHtml += `
-              <div class="slot-card ${normClass}" data-fecha="${dateStr}" data-hora="${hora}" data-paciente="${cita.pacienteNombre}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
+              <div class="slot-card ${normClass} ${extraSlotClass}" data-fecha="${dateStr}" data-hora="${hora}" data-paciente="${cita.pacienteNombre}" title="${cita.pacienteNombre} (${cita.tratamiento} - ${cita.medico})">
                 <div class="slot-row-main">
                   <div class="slot-time-patient">
-                    <span class="slot-time-badge">${hora} - ${calcularFinTurno(hora, cita.tratamiento)}</span>
+                    <span class="slot-time-badge">${hora} - ${finTurno}</span>
                     <span class="slot-patient-name" onclick="buscarYVerPaciente('${cita.pacienteNombre}')">${cita.pacienteNombre}</span>
                   </div>
                   <div class="slot-row-actions">
@@ -441,14 +495,29 @@ function renderAgendaView() {
             `;
           });
         } else {
+          const finSlotVacio = calcularFinTurno(hora, null);
+          const isPasado = isPastDay || (isToday && finSlotVacio <= horaActualStr);
+          const extraBtnClass = isPasado ? "slot-empty-pasado" : "";
+
           colHtml += `
-            <button class="slot-empty-btn" onclick="irANuevaCita('${dateStr}','${hora}')">
+            <button class="slot-empty-btn ${extraBtnClass}" onclick="irANuevaCita('${dateStr}','${hora}')">
               <span>+ ${hora}</span>
-              <span style="font-weight:600">Disponible</span>
+              <span style="font-weight:600">${isPasado ? 'Pasado' : 'Disponible'}</span>
             </button>
           `;
         }
       });
+
+      // Si hoy la hora actual ya superó el último turno (ej: son las 20:00 o 22:00), colocar el marcador al final
+      if (isToday && !markerPlaced) {
+        colHtml += `
+          <div class="agenda-now-marker" id="agenda-now-marker-col">
+            <span class="now-marker-badge"><span class="now-pulse-dot"></span> AHORA ${horaActualStr} hs (Cerrado)</span>
+            <div class="now-marker-line"></div>
+          </div>
+        `;
+        markerPlaced = true;
+      }
     }
 
     colHtml += `</div>`;

@@ -6,7 +6,7 @@
   <title>NECLATRONY – Sistema de Gestión</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles/main.css">
-  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/components.css?v=20261111_v30">
   <style>
     /* ── Toast ── */
     .toast {
@@ -243,6 +243,11 @@
           <button class="btn btn-sm btn-secondary" id="btn-agenda-prev" title="Día anterior">◀</button>
           <button class="btn btn-sm btn-secondary" id="btn-agenda-next" title="Día siguiente">▶</button>
           <input type="date" id="agenda-fecha" style="padding:6px 10px;font-size:13px;width:auto">
+        </div>
+
+        <div class="agenda-live-clock-badge" id="agenda-live-clock" title="Hora actual del sistema">
+          <span class="live-clock-dot"></span>
+          <span id="live-clock-text">Hora actual: --:-- hs</span>
         </div>
 
         <div style="display:flex;align-items:center;gap:var(--sp-2)">
@@ -829,7 +834,7 @@
 <!-- ── Toast ── -->
 <div id="toast" class="toast"></div>
 
-<script src="scripts/data.js?v=20261109_v28"></script>
-<script src="scripts/app.js?v=20261024_v9"></script>
+<script src="scripts/data.js?v=20261111_v30"></script>
+<script src="scripts/app.js?v=20261111_v30"></script>
 </body>
 </html>
