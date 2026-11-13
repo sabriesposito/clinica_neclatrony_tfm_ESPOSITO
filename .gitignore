@@ -7,3 +7,11 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# UiPath temp & cache
+.local/
+*.bak
+
+# Memoria TFM excluida por confidencialidad/requisito
+docs/Memoria*
+*.docx

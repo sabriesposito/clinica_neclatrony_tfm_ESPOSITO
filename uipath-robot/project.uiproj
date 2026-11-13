@@ -1,0 +1,6 @@
+{
+  "Name": "ClinicaNeclatrony_ERP_RPA",
+  "ProjectType": "Process",
+  "Description": "Robot RPA en UiPath para la automatización e inserción de citas médicas en el ERP clínico de Neclatrony (TFM EBIS)",
+  "MainFile": "Main.xaml"
+}
